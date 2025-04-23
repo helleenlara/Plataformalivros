@@ -7,12 +7,31 @@ DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiT
 
 engine = create_engine(DATABASE_URL)
 
-#Testa a conexão 
-try:
-    with engine.connect() as connection:
-        st.success("✅ Conectado com sucesso ao banco de dados!")
-except Exception as e:
-    st.error(f"Erro ao conectar: {e}")
+if st.button("Enviar Respostas"):
+    # Monta os dados em um DataFrame
+    dados = {
+        "frequencia_leitura": frequencia_leitura,
+        "tempo_leitura": tempo_leitura,
+        "local_leitura": local_leitura,
+        "tipo_livro": tipo_livro,
+        "generos": ", ".join(generos),
+        "genero_outro": genero_outro,
+        "autor_favorito": autor_favorito,
+        "tamanho_livro": tamanho_livro,
+        "narrativa": narrativa,
+        "sentimento_livro": sentimento_livro,
+        "questoes_sociais": questoes_sociais,
+        "releitura": releitura,
+        "formato_livro": formato_livro,
+        "influencia": influencia,
+        "avaliacoes": avaliacoes,
+        "audiolivros": audiolivros
+    }
+
+    df = pd.DataFrame([dados])
+    df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+
+    st.success("Formulário enviado com sucesso!")
 
 st.title("Formulário de Preferências de Leitura")
 
