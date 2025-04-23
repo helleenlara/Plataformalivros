@@ -1,4 +1,18 @@
 import streamlit as st
+from sqlalchemy import create_engine
+import pandas as pd
+
+
+DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiTj@dpg-d04mhrodl3ps73dh0k7g-a.oregon-postgres.render.com/banco_litmeapp"
+
+engine = create_engine(DATABASE_URL)
+
+#Testa a conexão 
+try:
+    with engine.connect() as connection:
+        st.success("✅ Conectado com sucesso ao banco de dados!")
+except Exception as e:
+    st.error(f"Erro ao conectar: {e}")
 
 st.title("Formulário de Preferências de Leitura")
 
