@@ -209,6 +209,6 @@ if st.button("Enviar Respostas"):
     }
 
     df = pd.DataFrame([dados])
-    df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+    df.to_sql("respostas_formulario", engine, if_exists="replace", index=False)
 
     st.success("Formulário enviado com sucesso! ✅")
