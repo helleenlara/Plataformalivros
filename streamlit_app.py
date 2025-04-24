@@ -188,4 +188,3 @@ leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", [
 if st.button("Enviar Respostas"):
 
     st.success("Formulário enviado com sucesso! ✅")
-    main
