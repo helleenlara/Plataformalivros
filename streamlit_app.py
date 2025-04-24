@@ -1,214 +1,167 @@
 import streamlit as st
 import pandas as pd
+import streamlit_authenticator as stauth
 from sqlalchemy import create_engine
 
-# URL de conexão com o banco PostgreSQL hospedado no Render
+# Banco de dados PostgreSQL no Render
 DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiTj@dpg-d04mhrodl3ps73dh0k7g-a.oregon-postgres.render.com/banco_litmeapp"
 engine = create_engine(DATABASE_URL)
 
-st.title("Formulário de Preferências de Leitura")
+# ====== Sistema de Login ======
+names = ["Alice", "Bob"]
+usernames = ["alice", "bob"]
+passwords = ["123", "456"]
+hashed_passwords = stauth.Hasher(passwords).generate()
 
-# Seção 1 - Hábitos de leitura
-st.header("1. Sobre seus hábitos de leitura")
-frequencia_leitura = st.radio("Com que frequência você costuma ler?", [
-    "Todos os dias",
-    "Algumas vezes por semana",
-    "Algumas vezes por mês",
-    "Raramente"
-])
+authenticator = stauth.Authenticate(
+    names, usernames, hashed_passwords,
+    "litmeapp", "abcdef", cookie_expiry_days=30
+)
 
-tempo_leitura = st.radio("Quanto tempo você geralmente dedica à leitura por sessão?", [
-    "Menos de 30 minutos",
-    "30 minutos a 1 hora",
-    "1 a 2 horas",
-    "Mais de 2 horas"
-])
+name, authentication_status, username = authenticator.login("Login", "main")
 
-local_leitura = st.radio("Onde você costuma ler com mais frequência?", [
-    "Em casa",
-    "No transporte público",
-    "Em bibliotecas/cafés",
-    "Outros lugares"
-])
+if authentication_status:
+    st.sidebar.success(f"Bem-vindo, {name} 👋")
+    authenticator.logout("Logout", "sidebar")
 
-# Seção 2 - Preferências de leitura
-st.header("2. Sobre suas preferências de leitura")
-tipo_livro = st.radio("Você prefere livros de ficção ou não ficção?", [
-    "Ficção",
-    "Não ficção",
-    "Gosto dos dois"
-])
+    st.title("Formulário de Preferências de Leitura")
 
-generos = st.multiselect("Quais gêneros literários você mais gosta? (Escolha até 3)", [
-    "Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror",
-    "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"
-])
+    # Seção 1 - Hábitos de leitura
+    st.header("1. Sobre seus hábitos de leitura")
+    frequencia_leitura = st.radio("Com que frequência você costuma ler?", [
+        "Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
 
-genero_outro = ""
-if "Outro" in generos:
-    genero_outro = st.text_input("Qual outro gênero?")
+    tempo_leitura = st.radio("Quanto tempo você geralmente dedica à leitura por sessão?", [
+        "Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
 
-autor_favorito = st.text_input("Você tem algum autor favorito?")
+    local_leitura = st.radio("Onde você costuma ler com mais frequência?", [
+        "Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"])
 
-tamanho_livro = st.radio("Você prefere livros curtos ou longos?", [
-    "Curtos (-200 páginas)",
-    "Médios (200-400 páginas)",
-    "Longos (+400 páginas)",
-    "Não tenho preferência"
-])
+    # Seção 2 - Preferências de leitura
+    st.header("2. Sobre suas preferências de leitura")
+    tipo_livro = st.radio("Você prefere livros de ficção ou não ficção?", ["Ficção", "Não ficção", "Gosto dos dois"])
 
-narrativa = st.radio("Como você gosta da narrativa dos livros?", [
-    "Ação rápida, cheia de acontecimentos",
-    "Narrativa introspectiva, com profundidade emocional",
-    "Equilibrado entre ação e introspecção"
-])
+    generos = st.multiselect("Quais gêneros literários você mais gosta? (Escolha até 3)", [
+        "Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror",
+        "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
 
-# Seção 3 - Personalidade do Leitor
-st.header("3. Personalidade do Leitor")
-sentimento_livro = st.radio("Como você gostaria que um livro te fizesse sentir?", [
-    "Inspirado e motivado",
-    "Reflexivo e pensativo",
-    "Empolgado e cheio de adrenalina",
-    "Confortável e relaxado",
-    "Assustado e intrigado"
-])
+    genero_outro = ""
+    if "Outro" in generos:
+        genero_outro = st.text_input("Qual outro gênero?")
 
-questoes_sociais = st.radio("Você gosta de livros que abordam questões sociais ou filosóficas?", [
-    "Sim, adoro reflexões profundas",
-    "Depende do tema",
-    "Prefiro histórias mais leves"
-])
+    autor_favorito = st.text_input("Você tem algum autor favorito?")
 
-releitura = st.radio("Você gosta de reler livros ou prefere sempre algo novo?", [
-    "Sempre procuro novas leituras",
-    "Gosto de reler meus favoritos",
-    "Um pouco dos dois"
-])
+    tamanho_livro = st.radio("Você prefere livros curtos ou longos?", [
+        "Curtos (-200 páginas)", "Médios (200-400 páginas)", "Longos (+400 páginas)", "Não tenho preferência"])
 
-# Seção 4 - Ajustes finais para recomendação
-st.header("4. Ajustes Finais para Recomendação")
-formato_livro = st.radio("Você prefere livros físicos ou digitais?", [
-    "Físicos",
-    "Digitais (Kindle, PDF, etc.)",
-    "Tanto faz"
-])
+    narrativa = st.radio("Como você gosta da narrativa dos livros?", [
+        "Ação rápida, cheia de acontecimentos",
+        "Narrativa introspectiva, com profundidade emocional",
+        "Equilibrado entre ação e introspecção"])
 
-influencia = st.radio("O que mais influencia você na escolha de um livro?", [
-    "Críticas e resenhas",
-    "Recomendações de amigos",
-    "Premiações e best-sellers",
-    "Sinopse e capa"
-])
+    # Seção 3 - Personalidade do Leitor
+    st.header("3. Personalidade do Leitor")
+    sentimento_livro = st.radio("Como você gostaria que um livro te fizesse sentir?", [
+        "Inspirado e motivado", "Reflexivo e pensativo", "Empolgado e cheio de adrenalina",
+        "Confortável e relaxado", "Assustado e intrigado"])
 
-avaliacoes = st.radio("Gostaria de receber recomendações baseadas em avaliações de outros leitores?", [
-    "Sim, me mostre os mais bem avaliados",
-    "Prefiro descobertas personalizadas",
-    "Tanto faz"
-])
+    questoes_sociais = st.radio("Você gosta de livros que abordam questões sociais ou filosóficas?", [
+        "Sim, adoro reflexões profundas", "Depende do tema", "Prefiro histórias mais leves"])
 
-audiolivros = st.radio("Você tem interesse em audiolivros?", [
-    "Sim, gosto de ouvir livros",
-    "Não, prefiro ler",
-    "Depende do livro"
-])
+    releitura = st.radio("Você gosta de reler livros ou prefere sempre algo novo?", [
+        "Sempre procuro novas leituras", "Gosto de reler meus favoritos", "Um pouco dos dois"])
 
-# Seção 5 - Interesse em Artigos Acadêmicos
-st.header("5. Interesse em Artigos Acadêmicos")
-interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", [
-    "Sim, leio frequentemente",
-    "Leio quando necessário",
-    "Não tenho interesse"
-])
+    # Seção 4 - Ajustes finais
+    st.header("4. Ajustes Finais para Recomendação")
+    formato_livro = st.radio("Você prefere livros físicos ou digitais?", ["Físicos", "Digitais (Kindle, PDF, etc.)", "Tanto faz"])
 
-area_academica = ""
-if interesse_artigos != "Não tenho interesse":
-    area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?")
+    influencia = st.radio("O que mais influencia você na escolha de um livro?", [
+        "Críticas e resenhas", "Recomendações de amigos", "Premiações e best-sellers", "Sinopse e capa"])
 
-# Seção 6 - Perfil Cognitivo e de Leitura
-st.header("6. Perfil Cognitivo e de Leitura")
-objetivo_leitura = st.radio("Qual é o seu principal objetivo ao ler?", [
-    "Aprender algo novo",
-    "Se entreter e relaxar",
-    "Desenvolvimento pessoal ou profissional",
-    "Conectar-se emocionalmente com histórias",
-    "Outros"
-])
+    avaliacoes = st.radio("Gostaria de receber recomendações baseadas em avaliações de outros leitores?", [
+        "Sim, me mostre os mais bem avaliados", "Prefiro descobertas personalizadas", "Tanto faz"])
 
-tipo_conteudo = st.radio("Que tipo de conteúdo você mais consome no dia a dia?", [
-    "Livros e textos longos",
-    "Artigos e blogs curtos",
-    "Vídeos no YouTube/TikTok",
-    "Podcasts e audiobooks",
-    "Notícias e matérias jornalísticas"
-])
+    audiolivros = st.radio("Você tem interesse em audiolivros?", [
+        "Sim, gosto de ouvir livros", "Não, prefiro ler", "Depende do livro"])
 
-nivel_leitura = st.radio("Como você classificaria seu nível de leitura?", [
-    "Iniciante – leio pouco ou estou começando",
-    "Intermediário – leio com frequência moderada",
-    "Avançado – leio com frequência e gosto de desafios"
-])
+    # Seção 5 - Interesse em Artigos Acadêmicos
+    st.header("5. Interesse em Artigos Acadêmicos")
+    interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", [
+        "Sim, leio frequentemente", "Leio quando necessário", "Não tenho interesse"])
 
-velocidade = st.radio("Você costuma ler em um ritmo...", [
-    "Rápido – gosto de terminar logo",
-    "Moderado – acompanho no meu tempo",
-    "Lento – gosto de refletir e analisar"
-])
+    area_academica = ""
+    if interesse_artigos != "Não tenho interesse":
+        area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?")
 
-curiosidade = st.radio("Você se considera uma pessoa curiosa sobre temas variados?", [
-    "Sim, adoro explorar assuntos novos",
-    "Depende do assunto",
-    "Não muito, gosto de coisas familiares"
-])
+    # Seção 6 - Perfil Cognitivo e de Leitura
+    st.header("6. Perfil Cognitivo e de Leitura")
+    objetivo_leitura = st.radio("Qual é o seu principal objetivo ao ler?", [
+        "Aprender algo novo", "Se entreter e relaxar", "Desenvolvimento pessoal ou profissional",
+        "Conectar-se emocionalmente com histórias", "Outros"])
 
-contexto_cultural = st.radio("Você gosta de livros ambientados em outras culturas, países ou épocas?", [
-    "Sim, isso me interessa muito",
-    "Depende do contexto",
-    "Prefiro histórias que se pareçam com minha realidade"
-])
+    tipo_conteudo = st.radio("Que tipo de conteúdo você mais consome no dia a dia?", [
+        "Livros e textos longos", "Artigos e blogs curtos", "Vídeos no YouTube/TikTok",
+        "Podcasts e audiobooks", "Notícias e matérias jornalísticas"])
 
-memoria = st.radio("Você prefere livros com...", [
-    "Tramas simples e fáceis de acompanhar",
-    "Histórias complexas, com múltiplos personagens e tempos",
-    "Um equilíbrio entre os dois"
-])
+    nivel_leitura = st.radio("Como você classificaria seu nível de leitura?", [
+        "Iniciante – leio pouco ou estou começando", "Intermediário – leio com frequência moderada",
+        "Avançado – leio com frequência e gosto de desafios"])
 
-leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", [
-    "Sim, frequentemente",
-    "Às vezes, quando necessário",
-    "Não, prefiro conteúdos em português"
-])
+    velocidade = st.radio("Você costuma ler em um ritmo...", [
+        "Rápido – gosto de terminar logo", "Moderado – acompanho no meu tempo",
+        "Lento – gosto de refletir e analisar"])
 
-if st.button("Enviar Respostas"):
-    dados = {
-        "frequencia_leitura": frequencia_leitura,
-        "tempo_leitura": tempo_leitura,
-        "local_leitura": local_leitura,
-        "tipo_livro": tipo_livro,
-        "generos": ", ".join(generos),
-        "genero_outro": genero_outro,
-        "autor_favorito": autor_favorito,
-        "tamanho_livro": tamanho_livro,
-        "narrativa": narrativa,
-        "sentimento_livro": sentimento_livro,
-        "questoes_sociais": questoes_sociais,
-        "releitura": releitura,
-        "formato_livro": formato_livro,
-        "influencia": influencia,
-        "avaliacoes": avaliacoes,
-        "audiolivros": audiolivros,
-        "interesse_artigos": interesse_artigos,
-        "area_academica": area_academica,
-        "objetivo_leitura": objetivo_leitura,
-        "tipo_conteudo": tipo_conteudo,
-        "nivel_leitura": nivel_leitura,
-        "velocidade": velocidade,
-        "curiosidade": curiosidade,
-        "contexto_cultural": contexto_cultural,
-        "memoria": memoria,
-        "leitura_em_ingles": leitura_em_ingles
-    }
+    curiosidade = st.radio("Você se considera uma pessoa curiosa sobre temas variados?", [
+        "Sim, adoro explorar assuntos novos", "Depende do assunto", "Não muito, gosto de coisas familiares"])
 
-    df = pd.DataFrame([dados])
-    df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+    contexto_cultural = st.radio("Você gosta de livros ambientados em outras culturas, países ou épocas?", [
+        "Sim, isso me interessa muito", "Depende do contexto", "Prefiro histórias que se pareçam com minha realidade"])
 
-    st.success("Formulário enviado com sucesso! ✅")
+    memoria = st.radio("Você prefere livros com...", [
+        "Tramas simples e fáceis de acompanhar",
+        "Histórias complexas, com múltiplos personagens e tempos",
+        "Um equilíbrio entre os dois"])
+
+    leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", [
+        "Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
+
+    if st.button("Enviar Respostas"):
+        dados = {
+            "usuario": username,
+            "frequencia_leitura": frequencia_leitura,
+            "tempo_leitura": tempo_leitura,
+            "local_leitura": local_leitura,
+            "tipo_livro": tipo_livro,
+            "generos": ", ".join(generos),
+            "genero_outro": genero_outro,
+            "autor_favorito": autor_favorito,
+            "tamanho_livro": tamanho_livro,
+            "narrativa": narrativa,
+            "sentimento_livro": sentimento_livro,
+            "questoes_sociais": questoes_sociais,
+            "releitura": releitura,
+            "formato_livro": formato_livro,
+            "influencia": influencia,
+            "avaliacoes": avaliacoes,
+            "audiolivros": audiolivros,
+            "interesse_artigos": interesse_artigos,
+            "area_academica": area_academica,
+            "objetivo_leitura": objetivo_leitura,
+            "tipo_conteudo": tipo_conteudo,
+            "nivel_leitura": nivel_leitura,
+            "velocidade": velocidade,
+            "curiosidade": curiosidade,
+            "contexto_cultural": contexto_cultural,
+            "memoria": memoria,
+            "leitura_em_ingles": leitura_em_ingles
+        }
+
+        df = pd.DataFrame([dados])
+        df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+
+        st.success("Formulário enviado com sucesso! ✅")
+
+elif authentication_status == False:
+    st.error("Usuário ou senha incorretos")
+elif authentication_status is None:
+    st.warning("Por favor, insira seu usuário e senha")
