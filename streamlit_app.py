@@ -10,7 +10,6 @@ st.title("Formulário de Preferências de Leitura")
 
 # Seção 1 - Hábitos de leitura
 st.header("1. Sobre seus hábitos de leitura")
-
 frequencia_leitura = st.radio("Com que frequência você costuma ler?", [
     "Todos os dias",
     "Algumas vezes por semana",
@@ -34,7 +33,6 @@ local_leitura = st.radio("Onde você costuma ler com mais frequência?", [
 
 # Seção 2 - Preferências de leitura
 st.header("2. Sobre suas preferências de leitura")
-
 tipo_livro = st.radio("Você prefere livros de ficção ou não ficção?", [
     "Ficção",
     "Não ficção",
@@ -67,7 +65,6 @@ narrativa = st.radio("Como você gosta da narrativa dos livros?", [
 
 # Seção 3 - Personalidade do Leitor
 st.header("3. Personalidade do Leitor")
-
 sentimento_livro = st.radio("Como você gostaria que um livro te fizesse sentir?", [
     "Inspirado e motivado",
     "Reflexivo e pensativo",
@@ -90,7 +87,6 @@ releitura = st.radio("Você gosta de reler livros ou prefere sempre algo novo?",
 
 # Seção 4 - Ajustes finais para recomendação
 st.header("4. Ajustes Finais para Recomendação")
-
 formato_livro = st.radio("Você prefere livros físicos ou digitais?", [
     "Físicos",
     "Digitais (Kindle, PDF, etc.)",
@@ -116,9 +112,8 @@ audiolivros = st.radio("Você tem interesse em audiolivros?", [
     "Depende do livro"
 ])
 
-# Seção 5 - Interesse em artigos acadêmicos
+# Seção 5 - Interesse em Artigos Acadêmicos
 st.header("5. Interesse em Artigos Acadêmicos")
-
 interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", [
     "Sim, leio frequentemente",
     "Leio quando necessário",
@@ -131,7 +126,6 @@ if interesse_artigos != "Não tenho interesse":
 
 # Seção 6 - Perfil Cognitivo e de Leitura
 st.header("6. Perfil Cognitivo e de Leitura")
-
 objetivo_leitura = st.radio("Qual é o seu principal objetivo ao ler?", [
     "Aprender algo novo",
     "Se entreter e relaxar",
@@ -184,6 +178,37 @@ leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", [
     "Não, prefiro conteúdos em português"
 ])
 
-# Botão de envio
 if st.button("Enviar Respostas"):
+    dados = {
+        "frequencia_leitura": frequencia_leitura,
+        "tempo_leitura": tempo_leitura,
+        "local_leitura": local_leitura,
+        "tipo_livro": tipo_livro,
+        "generos": ", ".join(generos),
+        "genero_outro": genero_outro,
+        "autor_favorito": autor_favorito,
+        "tamanho_livro": tamanho_livro,
+        "narrativa": narrativa,
+        "sentimento_livro": sentimento_livro,
+        "questoes_sociais": questoes_sociais,
+        "releitura": releitura,
+        "formato_livro": formato_livro,
+        "influencia": influencia,
+        "avaliacoes": avaliacoes,
+        "audiolivros": audiolivros,
+        "interesse_artigos": interesse_artigos,
+        "area_academica": area_academica,
+        "objetivo_leitura": objetivo_leitura,
+        "tipo_conteudo": tipo_conteudo,
+        "nivel_leitura": nivel_leitura,
+        "velocidade": velocidade,
+        "curiosidade": curiosidade,
+        "contexto_cultural": contexto_cultural,
+        "memoria": memoria,
+        "leitura_em_ingles": leitura_em_ingles
+    }
+
+    df = pd.DataFrame([dados])
+    df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+
     st.success("Formulário enviado com sucesso! ✅")
