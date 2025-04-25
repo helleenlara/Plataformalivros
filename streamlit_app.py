@@ -2,6 +2,67 @@ import streamlit as st
 import pandas as pd
 import streamlit_authenticator as stauth
 from sqlalchemy import create_engine
+import hashlib
+
+# Função para hash da senha
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+# Cadastro de usuários
+def create_user():
+    st.subheader("Cadastro de usuário")
+    nome = st.text_input("Nome completo")
+    username = st.text_input("Nome de usuário")
+    senha = st.text_input("Senha", type="password")
+    
+    if st.button("Criar conta"):
+        if nome and username and senha:
+            hashed_password = hash_password(senha)
+            # Armazenar dados do usuário, como nome, nome de usuário e senha hashada
+            st.session_state.users[username] = {"name": nome, "password": hashed_password}
+            st.success("Conta criada com sucesso!")
+        else:
+            st.warning("Preencha todos os campos!")
+
+# Login de usuários
+def login_user():
+    st.subheader("Login")
+    username = st.text_input("Nome de usuário")
+    senha = st.text_input("Senha", type="password")
+    
+    if st.button("Login"):
+        if username in st.session_state.users:
+            stored_password = st.session_state.users[username]["password"]
+            if stored_password == hash_password(senha):
+                st.session_state.logged_in = True
+                st.session_state.logged_user = username
+                st.success(f"Bem-vindo, {st.session_state.users[username]['name']}!")
+            else:
+                st.error("Senha incorreta")
+        else:
+            st.error("Usuário não encontrado")
+
+# Inicializando o estado da sessão para armazenar os usuários
+if "users" not in st.session_state:
+    st.session_state.users = {}
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if "logged_user" not in st.session_state:
+    st.session_state.logged_user = None
+
+# Se o usuário estiver logado, exibe uma mensagem de boas-vindas
+if st.session_state.logged_in:
+    st.write(f"Olá, {st.session_state.users[st.session_state.logged_user]['name']}!")
+else:
+    # Caso contrário, oferece a opção de login ou cadastro
+    option = st.radio("Escolha uma opção", ("Login", "Criar conta"))
+
+    if option == "Login":
+        login_user()
+    elif option == "Criar conta":
+        create_user()
 
 # Banco de dados PostgreSQL no Render
 DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiTj@dpg-d04mhrodl3ps73dh0k7g-a.oregon-postgres.render.com/banco_litmeapp"
