@@ -1,6 +1,7 @@
-streamlit==1.33.0
-streamlit-authenticator==0.2.3
-pandas==2.2.1
-sqlalchemy==2.0.29
-psycopg2-binary==2.9.9
+streamlit
+streamlit-authenticator=
+pandas
+sqlalchemy
+psycopg2-binary
+openai
 
