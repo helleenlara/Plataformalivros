@@ -79,9 +79,10 @@ authenticator = stauth.Authenticate(
     usernames=usernames,
     passwords=hashed_passwords,
     cookie_name="cookie_name",
-    key="secret_key",
+    key="secret_key",  # Chave secreta para cookies
     cookie_expiry_days=30
 )
+
 
 name, authentication_status, username = authenticator.login("Login", "main")
 if authentication_status:
@@ -230,4 +231,3 @@ elif authentication_status == False:
     st.error("Usuário ou senha incorretos")
 elif authentication_status is None:
     st.warning("Por favor, insira seu usuário e senha")
-
