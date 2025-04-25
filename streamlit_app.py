@@ -10,8 +10,12 @@ engine = create_engine(DATABASE_URL)
 # ====== Sistema de Login ======
 names = ["Alice", "Bob"]
 usernames = ["alice", "bob"]
-passwords = ["123", "456"]
-hashed_passwords = stauth.Hasher(passwords).generate()
+
+# Hashes das senhas ["123", "456"]
+hashed_passwords = [
+    "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq",  # senha de Alice
+    "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"   # senha de Bob
+]
 
 authenticator = stauth.Authenticate(
     names, usernames, hashed_passwords,
