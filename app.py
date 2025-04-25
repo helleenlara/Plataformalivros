@@ -8,6 +8,7 @@ DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiT
 engine = create_engine(DATABASE_URL)
 
 # ====== Sistema de Login ======
+<<<<<<< HEAD
 credentials = {
     "usernames": {
         "alice": {
@@ -26,6 +27,20 @@ authenticator = stauth.Authenticate(
     cookie_name="litmeapp",
     key="abcdef",
     cookie_expiry_days=30
+=======
+names = ["Alice", "Bob"]
+usernames = ["alice", "bob"]
+
+# Hashes das senhas ["123", "456"]
+hashed_passwords = [
+    "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq",  # senha de Alice
+    "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"   # senha de Bob
+]
+
+authenticator = stauth.Authenticate(
+    names, usernames, hashed_passwords,
+    "litmeapp", "abcdef", cookie_expiry_days=30
+>>>>>>> origin/main
 )
 
 name, authentication_status, username = authenticator.login("Login", "main")
@@ -34,7 +49,10 @@ if authentication_status:
     st.sidebar.success(f"Bem-vindo, {name} 👋")
     authenticator.logout("Logout", "sidebar")
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/main
     st.title("Formulário de Preferências de Leitura")
 
     # Seção 1 - Hábitos de leitura
@@ -175,4 +193,5 @@ if authentication_status:
 elif authentication_status == False:
     st.error("Usuário ou senha incorretos")
 elif authentication_status is None:
+st.warning("Por favor, insira seu usuário e senha")
     st.warning("Por favor, insira seu usuário e senha")
