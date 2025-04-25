@@ -8,32 +8,25 @@ DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiT
 engine = create_engine(DATABASE_URL)
 
 # ====== Sistema de Login ======
-credentials = {
-    "usernames": {
-        "alice": {
-            "name": "Alice",
-            "password": "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq"
-        },
-        "bob": {
-            "name": "Bob",
-            "password": "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"
-        }
-    }
-}
+names = ["Alice", "Bob"]
+usernames = ["alice", "bob"]
+
+# Hashes das senhas ["123", "456"]
+hashed_passwords = [
+    "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq",  # senha de Alice
+    "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"   # senha de Bob
+]
 
 authenticator = stauth.Authenticate(
-    credentials,
-    cookie_name="litmeapp",
-    key="abcdef",
-    cookie_expiry_days=30
+    names, usernames, hashed_passwords,
+    "litmeapp", "abcdef", cookie_expiry_days=30
 )
 
-name, authentication_status, username = authenticator.login("Login", location="main")
+name, authentication_status, username = authenticator.login("Login")  # Removido location
 
 if authentication_status:
     st.sidebar.success(f"Bem-vindo, {name} 👋")
     authenticator.logout("Logout", "sidebar")
-
 
     st.title("Formulário de Preferências de Leitura")
 
@@ -56,9 +49,7 @@ if authentication_status:
         "Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror",
         "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
 
-    genero_outro = ""
-    if "Outro" in generos:
-        genero_outro = st.text_input("Qual outro gênero?")
+    genero_outro = st.text_input("Qual outro gênero?") if "Outro" in generos else ""
 
     autor_favorito = st.text_input("Você tem algum autor favorito?")
 
@@ -100,9 +91,7 @@ if authentication_status:
     interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", [
         "Sim, leio frequentemente", "Leio quando necessário", "Não tenho interesse"])
 
-    area_academica = ""
-    if interesse_artigos != "Não tenho interesse":
-        area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?")
+    area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?") if interesse_artigos != "Não tenho interesse" else ""
 
     # Seção 6 - Perfil Cognitivo e de Leitura
     st.header("6. Perfil Cognitivo e de Leitura")
@@ -169,10 +158,9 @@ if authentication_status:
 
         df = pd.DataFrame([dados])
         df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
-
         st.success("Formulário enviado com sucesso! ✅")
 
-elif authentication_status == False:
+elif authentication_status is False:
     st.error("Usuário ou senha incorretos")
 elif authentication_status is None:
     st.warning("Por favor, insira seu usuário e senha")
