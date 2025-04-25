@@ -1,4 +1,4 @@
-# 🎈 Blank app template
+# Plataforma de Leitura
 
 A simple Streamlit app template for you to modify!
 
