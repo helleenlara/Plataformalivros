@@ -8,18 +8,24 @@ DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiT
 engine = create_engine(DATABASE_URL)
 
 # ====== Sistema de Login ======
-names = ["Alice", "Bob"]
-usernames = ["alice", "bob"]
-
-# Hashes das senhas ["123", "456"]
-hashed_passwords = [
-    "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq",  # senha de Alice
-    "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"   # senha de Bob
-]
+credentials = {
+    "usernames": {
+        "alice": {
+            "name": "Alice",
+            "password": "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq"
+        },
+        "bob": {
+            "name": "Bob",
+            "password": "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"
+        }
+    }
+}
 
 authenticator = stauth.Authenticate(
-    names, usernames, hashed_passwords,
-    "litmeapp", "abcdef", cookie_expiry_days=30
+    credentials,
+    cookie_name="litmeapp",
+    key="abcdef",
+    cookie_expiry_days=30
 )
 
 name, authentication_status, username = authenticator.login("Login", "main")
@@ -27,6 +33,7 @@ name, authentication_status, username = authenticator.login("Login", "main")
 if authentication_status:
     st.sidebar.success(f"Bem-vindo, {name} 👋")
     authenticator.logout("Logout", "sidebar")
+
 
     st.title("Formulário de Preferências de Leitura")
 
