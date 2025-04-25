@@ -1,6 +1,6 @@
 streamlit
 pandas
 sqlalchemy
-psycopg2-binary
+psycopg2_binary
 openai
-streamlit-authenticator
+streamlit_authenticator
