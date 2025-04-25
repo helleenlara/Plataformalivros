@@ -69,29 +69,25 @@ DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiT
 engine = create_engine(DATABASE_URL)
 
 # ====== Sistema de Login ======
-names = ["Alice", "Bob"]
-usernames = ["alice", "bob"]
+usernames = ['usuario1', 'usuario2']
+passwords = ['senha1', 'senha2']
 
 # Senhas hash para "123" e "456"
-hashed_passwords = [
-    "$2b$12$PlPEnQn8gGyTf8NoR4fnQuQ6uvREzLNUAfa4j8RCbp7Ccu8vRa7xq",  # 123
-    "$2b$12$zJGVV.C3PS2lE5VaEjPZ5.Sk7nNYVz.4TfIMBiKfPt.yJAHpl2LCi"   # 456
-]
+hashed_passwords = [stauth.Hasher([senha]).generate()[0] for senha in passwords]
 
 authenticator = stauth.Authenticate(
-    names=names,
     usernames=usernames,
     passwords=hashed_passwords,
-    cookie_name="litmeapp",
-    key="abcdef",
+    cookie_name="cookie_name",
+    key="secret_key",
     cookie_expiry_days=30
 )
 
-name, authentication_status, username = authenticator.login("Login", location="main")
-
+name, authentication_status, username = authenticator.login("Login", "main")
 if authentication_status:
-    st.sidebar.success(f"Bem-vindo, {name} 👋")
-    authenticator.logout("Logout", "sidebar")
+    st.write(f"Bem-vindo, {name}!")
+else:
+    st.error("Login falhou ou usuário não encontrado.")
 
     st.title("Formulário de Preferências de Leitura")
 
