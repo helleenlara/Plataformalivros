@@ -227,6 +227,8 @@ else:
 
         st.success("Formulário enviado com sucesso! ✅")
 
+if authentication_status == True:
+    st.success("Login bem-sucedido")
 elif authentication_status == False:
     st.error("Usuário ou senha incorretos")
 elif authentication_status is None:
