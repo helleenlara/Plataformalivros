@@ -11,6 +11,17 @@ engine = create_engine(DATABASE_URL)
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Função para garantir que a tabela de usuários exista
+def verificar_ou_criar_tabela_usuarios():
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                username TEXT PRIMARY KEY,
+                nome TEXT,
+                senha_hash TEXT
+            );
+        """))
+
 # Funções de autenticação
 def cadastrar_usuario(username, nome, senha):
     senha_hash = hash_password(senha)
@@ -28,6 +39,11 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
     return result
+
+# ===== INÍCIO DA APLICAÇÃO ===== #
+
+# Verifica se a tabela existe e cria se não existir
+overificar_ou_criar_tabela_usuarios()
 
 # Interface de login e cadastro
 menu = st.sidebar.selectbox("Menu", ["Login", "Cadastrar"])
