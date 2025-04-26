@@ -43,7 +43,7 @@ def autenticar_usuario(username, senha):
 # ===== INÍCIO DA APLICAÇÃO ===== #
 
 # Verifica se a tabela existe e cria se não existir
-overificar_ou_criar_tabela_usuarios()
+verificar_ou_criar_tabela_usuarios()
 
 # Interface de login e cadastro
 menu = st.sidebar.selectbox("Menu", ["Login", "Cadastrar"])
