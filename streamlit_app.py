@@ -132,7 +132,7 @@ elif menu == "Login":
                     "leitura_em_ingles": leitura_em_ingles
                 }
                 df = pd.DataFrame([dados])
-                df.to_sql("respostas_formulario", engine, if_exists="replace", index=False)
+                df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
 
                 st.success("Formulário enviado com sucesso! ✅")
 
