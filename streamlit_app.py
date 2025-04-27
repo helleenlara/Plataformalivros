@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import hashlib
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
 
 # Banco de dados PostgreSQL no Render
@@ -46,27 +47,15 @@ def autenticar_usuario(username, senha):
 verificar_ou_criar_tabela_usuarios()
 
 # Interface de login e cadastro
-menu = st.sidebar.selectbox("Menu", ["Login", "Cadastrar"])
+tab1, tab2 = st.sidebar.tabs(["Login", "Cadastrar"])
 
-if menu == "Cadastrar":
-    st.sidebar.subheader("Criar nova conta")
-    new_username = st.sidebar.text_input("Nome de usuário")
-    new_nome = st.sidebar.text_input("Seu nome completo")
-    new_password = st.sidebar.text_input("Senha", type="password")
+# Aba de Login
+with tab1:
+    st.subheader("Login de usuário")
+    username = st.text_input("Usuário", key="login_username")
+    password = st.text_input("Senha", type="password", key="login_password")
 
-    if st.sidebar.button("Cadastrar"):
-        try:
-            cadastrar_usuario(new_username, new_nome, new_password)
-            st.sidebar.success("Usuário cadastrado com sucesso! Agora faça login.")
-        except Exception as e:
-            st.sidebar.error(f"Erro ao cadastrar: {e}")
-
-elif menu == "Login":
-    st.sidebar.subheader("Login de usuário")
-    username = st.sidebar.text_input("Usuário")
-    password = st.sidebar.text_input("Senha", type="password")
-
-    if st.sidebar.button("Entrar"):
+    if st.button("Entrar", key="login_button"):
         usuario = autenticar_usuario(username, password)
         if usuario:
             st.session_state.logged_user = usuario.username
@@ -152,5 +141,18 @@ elif menu == "Login":
 
                 st.success("Formulário enviado com sucesso! ✅")
 
-        else:
-            st.sidebar.error("Usuário ou senha incorretos.")
+# Aba de Cadastro
+with tab2:
+    st.subheader("Criar nova conta")
+    new_username = st.text_input("Nome de usuário", key="cadastro_username")
+    new_nome = st.text_input("Seu nome completo", key="cadastro_nome")
+    new_password = st.text_input("Senha", type="password", key="cadastro_password")
+
+    if st.button("Cadastrar", key="cadastro_button"):
+        try:
+            cadastrar_usuario(new_username, new_nome, new_password)
+            st.sidebar.success("Usuário cadastrado com sucesso! Agora faça login na aba 'Login'.")
+        except IntegrityError:
+            st.sidebar.error("Este nome de usuário já está em uso. Escolha outro.")
+        except Exception as e:
+            st.sidebar.error(f"Erro ao cadastrar: {e}")
