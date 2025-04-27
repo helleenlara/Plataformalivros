@@ -19,33 +19,53 @@ st.title("📊 Visualização das Respostas do Formulário")
 
 # Função para verificar se o usuário já preencheu o questionário
 def verificar_questionario(username):
-    with engine.connect() as conn:
-        result = conn.execute(text("""SELECT questionario_preenchido FROM usuarios WHERE username = :username"""), {"username": username}).fetchone()
-        if result:
-            return result['questionario_preenchido']
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(
+                text("""SELECT questionario_preenchido FROM usuarios WHERE username = :username"""),
+                {"username": username}
+            ).fetchone()
+            
+            # Verifica se o resultado foi retornado e acessa a primeira posição da tupla
+            if result:
+                return result[0]  # Retorna o valor da coluna questionario_preenchido
+            return False
+    except Exception as e:
+        st.error(f"Erro ao verificar o questionário: {e}")
         return False
 
 # Função para salvar as respostas no banco de dados
 def salvar_respostas(username, respostas):
-    with engine.connect() as conn:
-        conn.execute(text("""INSERT INTO respostas_formulario 
-                             (username, frequencia_leitura, tempo_leitura, local_leitura, tipo_livro, generos, 
-                              autor_favorito, tamanho_livro, narrativa, sentimento_livro, questoes_sociais, 
-                              releitura, formato_livro, influencia, avaliacoes, audiolivros, interesse_artigos, 
-                              area_academica, objetivo_leitura, tipo_conteudo, nivel_leitura, velocidade, 
-                              curiosidade, contexto_cultural, memoria, leitura_em_ingles) 
-                             VALUES (:username, :frequencia_leitura, :tempo_leitura, :local_leitura, :tipo_livro, 
-                                     :generos, :autor_favorito, :tamanho_livro, :narrativa, :sentimento_livro, 
-                                     :questoes_sociais, :releitura, :formato_livro, :influencia, :avaliacoes, 
-                                     :audiolivros, :interesse_artigos, :area_academica, :objetivo_leitura, 
-                                     :tipo_conteudo, :nivel_leitura, :velocidade, :curiosidade, :contexto_cultural, 
-                                     :memoria, :leitura_em_ingles)"""),
-                            {"username": username, **respostas})
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("""INSERT INTO respostas_formulario 
+                         (username, frequencia_leitura, tempo_leitura, local_leitura, tipo_livro, generos, 
+                          autor_favorito, tamanho_livro, narrativa, sentimento_livro, questoes_sociais, 
+                          releitura, formato_livro, influencia, avaliacoes, audiolivros, interesse_artigos, 
+                          area_academica, objetivo_leitura, tipo_conteudo, nivel_leitura, velocidade, 
+                          curiosidade, contexto_cultural, memoria, leitura_em_ingles) 
+                         VALUES (:username, :frequencia_leitura, :tempo_leitura, :local_leitura, :tipo_livro, 
+                                 :generos, :autor_favorito, :tamanho_livro, :narrativa, :sentimento_livro, 
+                                 :questoes_sociais, :releitura, :formato_livro, :influencia, :avaliacoes, 
+                                 :audiolivros, :interesse_artigos, :area_academica, :objetivo_leitura, 
+                                 :tipo_conteudo, :nivel_leitura, :velocidade, :curiosidade, :contexto_cultural, 
+                                 :memoria, :leitura_em_ingles)"""),
+                {"username": username, **respostas}
+            )
+    except Exception as e:
+        st.error(f"Erro ao salvar respostas: {e}")
 
 # Função para marcar que o questionário foi preenchido
 def marcar_questionario_preenchido(username):
-    with engine.connect() as conn:
-        conn.execute(text("""UPDATE usuarios SET questionario_preenchido = TRUE WHERE username = :username"""), {"username": username})
+    try:
+        with engine.connect() as conn:
+            conn.execute(
+                text("""UPDATE usuarios SET questionario_preenchido = TRUE WHERE username = :username"""),
+                {"username": username}
+            )
+    except Exception as e:
+        st.error(f"Erro ao marcar questionário como preenchido: {e}")
 
 # Função para gerar o perfil de leitura com a OpenAI
 def gerar_perfil_leitura(respostas):
@@ -64,9 +84,26 @@ def gerar_perfil_leitura(respostas):
     Questões sociais de interesse: {respostas['questoes_sociais']}
     Costuma reler livros? {respostas['releitura']}
     Formato de livro preferido: {respostas['formato_livro']}
-    
-    Escreva um perfil de leitura dinâmico e personalizado para este usuário, utilizando uma linguagem natural.
+    influencia =  {respostas['influencia']}
+    avaliacoes = {respostas['influencia']}
+    audiolivros = {respostas['audiolivros']}
+    interesse_artigos = {respostas['interesse_artigos']}
+    area_academica = {respostas['area_academica']}
+    objetivo_leitura = {respostas['objetivo_leitura']}
+    tipo_conteudo = {respostas['tipo_conteudo']}
+    nivel_leitura = {respostas['nivel_leitura']}
+    velocidade = {respostas['velocidade']}
+    curiosidade = {respostas['curiosidade']}
+    contexto_cultural = {respostas['contexto_cultural']}
+    memoria = {respostas['memoria']}
+    Leitura em inglês: {respostas['leitura_em_ingles']}
+
+    Com base nessas informações, escreva um perfil de leitura dinâmico e personalizado para este usuário, utilizando uma linguagem natural.
+    O perfil deve incluir recomendações de livros, autores e gêneros que se alinhem com os interesses e hábitos de leitura do usuário.
     """
+
+    # Chamada à API da OpenAI para gerar o perfil
+  
     response = openai.Completion.create(
         model="text-davinci-003",
         prompt=prompt,
@@ -83,7 +120,10 @@ if verificar_questionario(username):
     st.title("Perfil de Leitura")
     # Aqui, recuperamos as respostas do banco de dados
     with engine.connect() as conn:
-        respostas_usuario = conn.execute(text("""SELECT * FROM respostas_formulario WHERE username = :username"""), {"username": username}).fetchone()
+        respostas_usuario = conn.execute(
+            text("""SELECT * FROM respostas_formulario WHERE username = :username"""),
+            {"username": username}
+        ).fetchone()
 
     # Gerar o perfil de leitura com a OpenAI
     perfil = gerar_perfil_leitura(respostas_usuario)
