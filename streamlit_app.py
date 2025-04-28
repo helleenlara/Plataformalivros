@@ -109,7 +109,7 @@ with tab1:
                 memoria = st.radio("Você prefere livros com...", ["Tramas simples e fáceis de acompanhar", "Histórias complexas, com múltiplos personagens e tempos", "Um equilíbrio entre os dois"])
                 leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
-                if st.button("Enviar Respostas"):
+                if st.form_submit_button("Enviar Respostas"):
                     dados = {
                         "usuario": username,
                         "frequencia_leitura": frequencia_leitura,
