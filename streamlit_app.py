@@ -1,18 +1,28 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-from sqlalchemy import create_engine, text
+import openai
+import os
+from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import create_engine, text
 
-# Banco de dados PostgreSQL no Render
-DATABASE_URL = "postgresql://banco_litmeapp_user:A48TgTYgIwbKtQ1nRSsLA53ipPPphiTj@dpg-d04mhrodl3ps73dh0k7g-a.oregon-postgres.render.com/banco_litmeapp"
+# Carrega variáveis de ambiente
+dotenv_path = os.path.join(os.getcwd(), '.env')
+load_dotenv(dotenv_path)
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    "postgresql://banco_litmeapp_user:password@host:port/dbname"
+)
 engine = create_engine(DATABASE_URL)
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Função para gerar hash da senha
+# -------------------------------
+# Funções auxiliares
+# -------------------------------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Função para garantir que a tabela de usuários exista
 def verificar_ou_criar_tabela_usuarios():
     with engine.connect() as conn:
         conn.execute(text("""
@@ -23,7 +33,6 @@ def verificar_ou_criar_tabela_usuarios():
             );
         """))
 
-# Funções de autenticação
 def cadastrar_usuario(username, nome, senha):
     senha_hash = hash_password(senha)
     with engine.connect() as conn:
@@ -35,110 +44,107 @@ def cadastrar_usuario(username, nome, senha):
 def autenticar_usuario(username, senha):
     senha_hash = hash_password(senha)
     with engine.connect() as conn:
-        result = conn.execute(text("""
-            SELECT * FROM usuarios
+        return conn.execute(text("""
+            SELECT username, nome FROM usuarios
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
-    return result
 
-# ===== INÍCIO DA APLICAÇÃO ===== #
-
-# Verifica se a tabela existe e cria se não existir
+# -------------------------------
+# Setup inicial
+# -------------------------------
+st.set_page_config(page_title="Plataforma de Livros", layout="wide")
 verificar_ou_criar_tabela_usuarios()
 
-# Interface de login e cadastro
-st.title("Plataforma Livros - Login ou Cadastro")
-
-tab1, tab2 = st.tabs(["Login", "Cadastrar"])
-
-with tab1:
-    if "logged_user" not in st.session_state:
-        with st.form("login_form"):
-            st.subheader("Login de usuário")
-            username = st.text_input("Usuário")
-            password = st.text_input("Senha", type="password")
-            submit_login = st.form_submit_button("Entrar")
-
-            if submit_login:
-                usuario = autenticar_usuario(username, password)
-                if usuario:
-                    st.session_state.logged_user = usuario.username
-                    st.session_state.nome_user = usuario.nome
-                    st.success(f"Bem-vindo, {usuario.nome}!")
-                else:
-                    st.error("Usuário ou senha incorretos.")
-    else:
-        st.success(f"Você já está logado como {st.session_state.nome_user}")
-
-with tab2:
-    with st.form("cadastro_form"):
-        st.subheader("Criar nova conta")
-        new_username = st.text_input("Nome de usuário")
-        new_nome = st.text_input("Seu nome completo")
-        new_password = st.text_input("Senha", type="password")
-        submit_cadastro = st.form_submit_button("Cadastrar")
-
-        if submit_cadastro:
+# -------------------------------
+# Seção de autenticação
+# -------------------------------
+if "logged_user" not in st.session_state:
+    st.sidebar.title("🔐 Autenticação")
+    tab_login, tab_signup = st.sidebar.tabs(["Login", "Cadastrar"])
+    
+    with tab_login:
+        st.subheader("Login")
+        login_user = st.text_input("Usuário", key="login_user")
+        login_pass = st.text_input("Senha", type="password", key="login_pass")
+        if st.button("Entrar", key="btn_login"):
+            user = autenticar_usuario(login_user, login_pass)
+            if user:
+                st.session_state.logged_user = user.username
+                st.session_state.logged_name = user.nome
+                st.success(f"Bem-vindo(a), {user.nome}!")
+            else:
+                st.error("Usuário ou senha incorretos.")
+    
+    with tab_signup:
+        st.subheader("Cadastrar")
+        new_user = st.text_input("Usuário", key="new_user")
+        new_name = st.text_input("Nome", key="new_name")
+        new_pass = st.text_input("Senha", type="password", key="new_pass")
+        if st.button("Cadastrar", key="btn_signup"):
             try:
-                cadastrar_usuario(new_username, new_nome, new_password)
-                st.success("Usuário cadastrado com sucesso! Agora faça login.")
+                cadastrar_usuario(new_user, new_name, new_pass)
+                st.success("Conta criada! Faça login.")
             except IntegrityError:
-                st.error("Este nome de usuário já está em uso. Escolha outro.")
-            except Exception as e:
-                st.error(f"Erro ao cadastrar: {e}")
-
-# Se o usuário estiver logado, mostra o formulário principal
-if "logged_user" in st.session_state:
+                st.error("Este usuário já existe. Escolha outro.")
+else:
+    # -------------------------------
+    # Usuário já autenticado
+    # -------------------------------
+    st.sidebar.write(f"👤 {st.session_state.logged_name}")
+    if st.sidebar.button("Logout", key="btn_logout"):
+        del st.session_state.logged_user
+        del st.session_state.logged_name
+        st.experimental_rerun()
+    
+    # ==== Formulário de Preferências de Leitura ====
     st.title("Formulário de Preferências de Leitura")
+    
+    st.header("1. Sobre seus hábitos de leitura")
+    frequencia_leitura = st.radio("Com que frequência você costuma ler?", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
+    tempo_leitura = st.radio("Quanto tempo você geralmente dedica à leitura por sessão?", ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
+    local_leitura = st.radio("Onde você costuma ler com mais frequência?", ["Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"])
 
-    with st.form("formulario_respostas"):
-        st.header("1. Sobre seus hábitos de leitura")
-        frequencia_leitura = st.radio("Com que frequência você costuma ler?", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
-        tempo_leitura = st.radio("Quanto tempo você geralmente dedica à leitura por sessão?", ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
-        local_leitura = st.radio("Onde você costuma ler com mais frequência?", ["Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"])
+    st.header("2. Sobre suas preferências de leitura")
+    tipo_livro = st.radio("Você prefere livros de ficção ou não ficção?", ["Ficção", "Não ficção", "Gosto dos dois"])
+    generos = st.multiselect("Quais gêneros literários você mais gosta? (Escolha até 3)", ["Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror", "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
+    genero_outro = ""
+    if "Outro" in generos:
+        genero_outro = st.text_input("Qual outro gênero?")
+    autor_favorito = st.text_input("Você tem algum autor favorito?")
+    tamanho_livro = st.radio("Você prefere livros curtos ou longos?", ["Curtos (-200 páginas)", "Médios (200-400 páginas)", "Longos (+400 páginas)", "Não tenho preferência"])
+    narrativa = st.radio("Como você gosta da narrativa dos livros?", ["Ação rápida, cheia de acontecimentos", "Narrativa introspectiva, com profundidade emocional", "Equilibrado entre ação e introspecção"])
 
-        st.header("2. Sobre suas preferências de leitura")
-        tipo_livro = st.radio("Você prefere livros de ficção ou não ficção?", ["Ficção", "Não ficção", "Gosto dos dois"])
-        generos = st.multiselect("Quais gêneros literários você mais gosta? (Escolha até 3)", ["Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror", "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
-        genero_outro = ""
-        if "Outro" in generos:
-            genero_outro = st.text_input("Qual outro gênero?")
-        autor_favorito = st.text_input("Você tem algum autor favorito?")
-        tamanho_livro = st.radio("Você prefere livros curtos ou longos?", ["Curtos (-200 páginas)", "Médios (200-400 páginas)", "Longos (+400 páginas)", "Não tenho preferência"])
-        narrativa = st.radio("Como você gosta da narrativa dos livros?", ["Ação rápida, cheia de acontecimentos", "Narrativa introspectiva, com profundidade emocional", "Equilibrado entre ação e introspecção"])
+    st.header("3. Personalidade do Leitor")
+    sentimento_livro = st.radio("Como você gostaria que um livro te fizesse sentir?", ["Inspirado e motivado", "Reflexivo e pensativo", "Empolgado e cheio de adrenalina", "Confortável e relaxado", "Assustado e intrigado"])
+    questoes_sociais = st.radio("Você gosta de livros que abordam questões sociais ou filosóficas?", ["Sim, adoro reflexões profundas", "Depende do tema", "Prefiro histórias mais leves"])
+    releitura = st.radio("Você gosta de reler livros ou prefere sempre algo novo?", ["Sempre procuro novas leituras", "Gosto de reler meus favoritos", "Um pouco dos dois"])
 
-        st.header("3. Personalidade do Leitor")
-        sentimento_livro = st.radio("Como você gostaria que um livro te fizesse sentir?", ["Inspirado e motivado", "Reflexivo e pensativo", "Empolgado e cheio de adrenalina", "Confortável e relaxado", "Assustado e intrigado"])
-        questoes_sociais = st.radio("Você gosta de livros que abordam questões sociais ou filosóficas?", ["Sim, adoro reflexões profundas", "Depende do tema", "Prefiro histórias mais leves"])
-        releitura = st.radio("Você gosta de reler livros ou prefere sempre algo novo?", ["Sempre procuro novas leituras", "Gosto de reler meus favoritos", "Um pouco dos dois"])
+    st.header("4. Ajustes Finais para Recomendação")
+    formato_livro = st.radio("Você prefere livros físicos ou digitais?", ["Físicos", "Digitais (Kindle, PDF, etc.)", "Tanto faz"])
+    influencia = st.radio("O que mais influencia você na escolha de um livro?", ["Críticas e resenhas", "Recomendações de amigos", "Premiações e best-sellers", "Sinopse e capa"])
+    avaliacoes = st.radio("Gostaria de receber recomendações baseadas em avaliações de outros leitores?", ["Sim, me mostre os mais bem avaliados", "Prefiro descobertas personalizadas", "Tanto faz"])
+    audiolivros = st.radio("Você tem interesse em audiolivros?", ["Sim, gosto de ouvir livros", "Não, prefiro ler", "Depende do livro"])
 
-        st.header("4. Ajustes Finais para Recomendação")
-        formato_livro = st.radio("Você prefere livros físicos ou digitais?", ["Físicos", "Digitais (Kindle, PDF, etc.)", "Tanto faz"])
-        influencia = st.radio("O que mais influencia você na escolha de um livro?", ["Críticas e resenhas", "Recomendações de amigos", "Premiações e best-sellers", "Sinopse e capa"])
-        avaliacoes = st.radio("Gostaria de receber recomendações baseadas em avaliações de outros leitores?", ["Sim, me mostre os mais bem avaliados", "Prefiro descobertas personalizadas", "Tanto faz"])
-        audiolivros = st.radio("Você tem interesse em audiolivros?", ["Sim, gosto de ouvir livros", "Não, prefiro ler", "Depende do livro"])
+    st.header("5. Interesse em Artigos Acadêmicos")
+    interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", ["Sim, leio frequentemente", "Leio quando necessário", "Não tenho interesse"])
+    area_academica = ""
+    if interesse_artigos != "Não tenho interesse":
+        area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?")
 
-        st.header("5. Interesse em Artigos Acadêmicos")
-        interesse_artigos = st.radio("Você tem interesse em artigos acadêmicos ou técnicos?", ["Sim, leio frequentemente", "Leio quando necessário", "Não tenho interesse"])
-        area_academica = ""
-        if interesse_artigos != "Não tenho interesse":
-            area_academica = st.text_input("Se sim, quais áreas ou temas você mais se interessa?")
+    st.header("6. Perfil Cognitivo e de Leitura")
+    objetivo_leitura = st.radio("Qual é o seu principal objetivo ao ler?", ["Aprender algo novo", "Se entreter e relaxar", "Desenvolvimento pessoal ou profissional", "Conectar-se emocionalmente com histórias", "Outros"])
+    tipo_conteudo = st.radio("Que tipo de conteúdo você mais consome no dia a dia?", ["Livros e textos longos", "Artigos e blogs curtos", "Vídeos no YouTube/TikTok", "Podcasts e audiobooks", "Notícias e matérias jornalísticas"])
+    nivel_leitura = st.radio("Como você classificaria seu nível de leitura?", ["Iniciante – leio pouco ou estou começando", "Intermediário – leio com frequência moderada", "Avançado – leio com frequência e gosto de desafios"])
+    velocidade = st.radio("Você costuma ler em um ritmo...", ["Rápido – gosto de terminar logo", "Moderado – acompanho no meu tempo", "Lento – gosto de refletir e analisar"])
+    curiosidade = st.radio("Você se considera uma pessoa curiosa sobre temas variados?", ["Sim, adoro explorar assuntos novos", "Depende do assunto", "Não muito, gosto de coisas familiares"])
+    contexto_cultural = st.radio("Você gosta de livros ambientados em outras culturas, países ou épocas?", ["Sim, isso me interessa muito", "Depende do contexto", "Prefiro histórias que se pareçam com minha realidade"])
+    memoria = st.radio("Você prefere livros com...", ["Tramas simples e fáceis de acompanhar", "Histórias complexas, com múltiplos personagens e tempos", "Um equilíbrio entre os dois"])
+    leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
-        st.header("6. Perfil Cognitivo e de Leitura")
-        objetivo_leitura = st.radio("Qual é o seu principal objetivo ao ler?", ["Aprender algo novo", "Se entreter e relaxar", "Desenvolvimento pessoal ou profissional", "Conectar-se emocionalmente com histórias", "Outros"])
-        tipo_conteudo = st.radio("Que tipo de conteúdo você mais consome no dia a dia?", ["Livros e textos longos", "Artigos e blogs curtos", "Vídeos no YouTube/TikTok", "Podcasts e audiobooks", "Notícias e matérias jornalísticas"])
-        nivel_leitura = st.radio("Como você classificaria seu nível de leitura?", ["Iniciante – leio pouco ou estou começando", "Intermediário – leio com frequência moderada", "Avançado – leio com frequência e gosto de desafios"])
-        velocidade = st.radio("Você costuma ler em um ritmo...", ["Rápido – gosto de terminar logo", "Moderado – acompanho no meu tempo", "Lento – gosto de refletir e analisar"])
-        curiosidade = st.radio("Você se considera uma pessoa curiosa sobre temas variados?", ["Sim, adoro explorar assuntos novos", "Depende do assunto", "Não muito, gosto de coisas familiares"])
-        contexto_cultural = st.radio("Você gosta de livros ambientados em outras culturas, países ou épocas?", ["Sim, isso me interessa muito", "Depende do contexto", "Prefiro histórias que se pareçam com minha realidade"])
-        memoria = st.radio("Você prefere livros com...", ["Tramas simples e fáceis de acompanhar", "Histórias complexas, com múltiplos personagens e tempos", "Um equilíbrio entre os dois"])
-        leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
-
-        enviar_respostas = st.form_submit_button("Enviar Respostas")
-
-        if enviar_respostas:
-            dados = {
-                "usuario": st.session_state.logged_user,
+    if st.button("Enviar Respostas", key="btn_submit"):
+        # Coleta dos dados do formulário
+        dados = {
+            "usuario": st.session_state.logged_user,
                 "frequencia_leitura": frequencia_leitura,
                 "tempo_leitura": tempo_leitura,
                 "local_leitura": local_leitura,
@@ -165,9 +171,33 @@ if "logged_user" in st.session_state:
                 "contexto_cultural": contexto_cultural,
                 "memoria": memoria,
                 "leitura_em_ingles": leitura_em_ingles
-            }
+        }
+        # Armazena no banco
+        df = pd.DataFrame([dados])
+        df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+        st.success("Formulário enviado com sucesso! ✅")
 
-            df = pd.DataFrame([dados])
-            df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+        # Integração com OpenAI para gerar perfil narrativo
+        prompt = (
+            "Você é um especialista em análise de perfil de leitura. "
+            "Com base nas seguintes preferências do usuário, gere um perfil narrativo detalhado, "
+            "descrevendo seu estilo de leitura, motivações, pontos fortes e sugestões personalizadas:\n" +
+            pd.Series(dados).to_json(orient="records")
+        )
+        try:
+            completion = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "Você é um assistente que gera perfis de leitores com tom narrativo e envolvente."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
+            perfil = completion.choices[0].message.content
+        except Exception as e:
+            st.error(f"Erro ao gerar perfil de leitura: {e}")
+            perfil = None
 
-            st.success("Formulário enviado com sucesso! ✅")
+        if perfil:
+            st.header("📖 Seu Perfil de Leitura")
+            st.write(perfil)
