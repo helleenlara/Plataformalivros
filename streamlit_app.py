@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 import pandas as pd
-import google.generativeai as genai
+# import google.generativeai as genai  # Temporariamente desativado
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
@@ -10,9 +10,8 @@ import hashlib
 # Carrega variáveis de ambiente
 load_dotenv()
 
-# Configura chave da API Gemini
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=gemini_api_key)
+# gemini_api_key = os.getenv("GEMINI_API_KEY")
+# genai.configure(api_key=gemini_api_key)
 
 # Conecta ao banco de dados PostgreSQL
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -133,18 +132,4 @@ if "logged_user" in st.session_state:
                         "estilo": estilo
                     })
 
-                # Gera recomendação com Gemini
-                prompt = f"""
-                Usuário gosta de {preferencia}, especialmente do gênero {genero}.
-                Autor favorito: {autor}.
-                Prefere estilo de leitura com foco em {estilo.lower()}.
-                Gere um perfil de leitura e recomende 3 livros baseados nisso.
-                """
-                try:
-                    model = genai.GenerativeModel("gemini-pro")
-                    response = model.generate_content(prompt)
-                    perfil = response.text
-                    st.subheader("🔍 Seu Perfil de Leitura e Recomendações")
-                    st.markdown(perfil)
-                except Exception as e:
-                    st.error(f"Erro ao gerar recomendação: {e}")
+                st.success("Respostas enviadas com sucesso! ✅")
