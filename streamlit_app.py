@@ -22,7 +22,6 @@ if gemini_api_key is None:
     raise ValueError("A chave da API do Gemini 'GEMINI_API_KEY' não foi encontrada no arquivo .env")
 
 # Criação do motor de conexão com o banco de dados
-# engine = create_engine(DATABASE_URL)
 engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
 
 # -------------------------------
@@ -185,7 +184,7 @@ else:
         df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
         st.success("Formulário enviado com sucesso! ✅")
 
-        # Integração com Gemini para gerar perfil narrativo
+        # Integração com Gemini para gerar perfil narrativo e sugestões
         prompt = f"""
             Você é um especialista em análise de perfil de leitura. Com base nas seguintes preferências de leitura, gere um perfil narrativo detalhado, descrevendo o estilo de leitura, motivações, pontos fortes e sugestões personalizadas para o usuário:
 
@@ -214,6 +213,8 @@ else:
             - Interesse por Culturas Diversas: {contexto_cultural}
             - Tipo de História Preferida: {memoria}
             - Leitura em Inglês: {leitura_em_ingles}
+
+            Com base nisso, forneça um perfil detalhado sobre este leitor, suas motivações, sugestões de livros que ele poderia gostar, e também sugira artigos acadêmicos ou técnicos relacionados à sua área de interesse, caso ele tenha essa preferência.
         """
 
         # Envio para Gemini usando o novo cliente
