@@ -56,6 +56,14 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
+def usuario_ja_respondeu_formulario(usuario):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT COUNT(*) FROM respostas_formulario WHERE usuario = :usuario
+        """), {"usuario": usuario}).scalar()
+        return result > 0
+
+
 # -------------------------------
 # Setup inicial
 # -------------------------------
@@ -149,6 +157,9 @@ else:
     leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
     if st.button("Enviar Respostas", key="btn_submit"):
+    if usuario_ja_respondeu_formulario(st.session_state.logged_user):
+        st.warning("Você já enviou suas preferências anteriormente. Caso deseje atualizar, isso será implementado em breve.")
+    else:
         # Coleta dos dados do formulário
         dados = {
             "usuario": st.session_state.logged_user,
@@ -184,5 +195,6 @@ else:
         df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
         st.success("Formulário enviado com sucesso! ✅")
 
+
         # Integração com Gemini (temporariamente desativado para testes)
-st.info("🛠️ A geração do perfil de leitura está temporariamente desativada para testes.")
+st.info("🛠️ A geração do perfil de leitura está temporariamente desativada.")
