@@ -34,6 +34,18 @@ def verificar_ou_criar_tabela_usuarios():
             );
         """))
 
+def verificar_ou_criar_tabela_respostas():
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS respostas_formulario (
+                usuario TEXT PRIMARY KEY,
+                preferencia TEXT,
+                genero TEXT,
+                autor TEXT,
+                estilo TEXT
+            );
+        """))
+
 def cadastrar_usuario(username, nome, senha):
     senha_hash = hash_password(senha)
     with engine.connect() as conn:
@@ -51,8 +63,16 @@ def autenticar_usuario(username, senha):
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
     return result
 
+def usuario_ja_respondeu(username):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT 1 FROM respostas_formulario WHERE usuario = :username
+        """), {"username": username}).fetchone()
+    return result is not None
+
 # Inicializa aplicação
 verificar_ou_criar_tabela_usuarios()
+verificar_ou_criar_tabela_respostas()
 
 st.title("Recomendações de Livros Personalizadas")
 
@@ -89,25 +109,42 @@ elif menu == "Login":
                     st.error("Usuário ou senha incorretos.")
 
 if "logged_user" in st.session_state:
-    st.header("Formulário de Preferências de Leitura")
-    with st.form("formulario_respostas"):
-        preferencia = st.radio("Você prefere ficção ou não ficção?", ["Ficção", "Não ficção", "Ambos"])
-        genero = st.text_input("Qual seu gênero favorito?")
-        autor = st.text_input("Autor favorito")
-        estilo = st.radio("Prefere ação, introspecção ou equilíbrio?", ["Ação", "Introspecção", "Equilíbrio"])
+    if usuario_ja_respondeu(st.session_state.logged_user):
+        st.info("Você já preencheu o formulário. Obrigado! 😊")
+    else:
+        st.header("Formulário de Preferências de Leitura")
+        with st.form("formulario_respostas"):
+            preferencia = st.radio("Você prefere ficção ou não ficção?", ["Ficção", "Não ficção", "Ambos"])
+            genero = st.text_input("Qual seu gênero favorito?")
+            autor = st.text_input("Autor favorito")
+            estilo = st.radio("Prefere ação, introspecção ou equilíbrio?", ["Ação", "Introspecção", "Equilíbrio"])
 
-        if st.form_submit_button("Enviar Respostas"):
-            prompt = f"""
-            Usuário gosta de {preferencia}, especialmente do gênero {genero}.
-            Autor favorito: {autor}.
-            Prefere estilo de leitura com foco em {estilo.lower()}.
-            Gere um perfil de leitura e recomende 3 livros baseados nisso.
-            """
-            try:
-                model = genai.GenerativeModel("gemini-pro")
-                response = model.generate_content(prompt)
-                perfil = response.text
-                st.subheader("🔍 Seu Perfil de Leitura e Recomendações")
-                st.markdown(perfil)
-            except Exception as e:
-                st.error(f"Erro ao gerar recomendação: {e}")
+            if st.form_submit_button("Enviar Respostas"):
+                # Salva no banco
+                with engine.connect() as conn:
+                    conn.execute(text("""
+                        INSERT INTO respostas_formulario (usuario, preferencia, genero, autor, estilo)
+                        VALUES (:usuario, :preferencia, :genero, :autor, :estilo)
+                    """), {
+                        "usuario": st.session_state.logged_user,
+                        "preferencia": preferencia,
+                        "genero": genero,
+                        "autor": autor,
+                        "estilo": estilo
+                    })
+
+                # Gera recomendação com Gemini
+                prompt = f"""
+                Usuário gosta de {preferencia}, especialmente do gênero {genero}.
+                Autor favorito: {autor}.
+                Prefere estilo de leitura com foco em {estilo.lower()}.
+                Gere um perfil de leitura e recomende 3 livros baseados nisso.
+                """
+                try:
+                    model = genai.GenerativeModel("gemini-pro")
+                    response = model.generate_content(prompt)
+                    perfil = response.text
+                    st.subheader("🔍 Seu Perfil de Leitura e Recomendações")
+                    st.markdown(perfil)
+                except Exception as e:
+                    st.error(f"Erro ao gerar recomendação: {e}")
