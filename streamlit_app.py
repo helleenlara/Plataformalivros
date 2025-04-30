@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
-import google.generativeai as genai
+
 
 
 # Carrega variáveis de ambiente
@@ -16,11 +16,6 @@ load_dotenv(dotenv_path)
 DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL is None:
     raise ValueError("A variável de ambiente 'DATABASE_URL' não foi encontrada no arquivo .env")
-
-# Verifica se a chave da API do Gemini foi carregada corretamente
-gemini_api_key = os.getenv("GEMINI_API_KEY")
-if gemini_api_key is None:
-    raise ValueError("A chave da API do Gemini 'GEMINI_API_KEY' não foi encontrada no arquivo .env")
 
 # Criação do motor de conexão com o banco de dados
 engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
