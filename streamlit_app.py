@@ -5,7 +5,8 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
-from google import genai 
+import google.generativeai as genai
+
 
 # Carrega variáveis de ambiente
 dotenv_path = os.path.join(os.getcwd(), '.env')
