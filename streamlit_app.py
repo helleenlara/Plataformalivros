@@ -47,11 +47,11 @@ def verificar_ou_criar_tabela_respostas():
 
 def cadastrar_usuario(username, nome, senha):
     senha_hash = hash_password(senha)
-    with engine.connect() as conn:
-        conn.execute(text("""
+    with engine.begin() as conn:  # <-- garante commit automático
+        conn.execute(text(\"\"\"
             INSERT INTO usuarios (username, nome, senha_hash)
             VALUES (:username, :nome, :senha_hash)
-        """), {"username": username, "nome": nome, "senha_hash": senha_hash})
+        \"\"\"), {\"username\": username, \"nome\": nome, \"senha_hash\": senha_hash})
 
 def autenticar_usuario(username, senha):
     senha_hash = hash_password(senha)
