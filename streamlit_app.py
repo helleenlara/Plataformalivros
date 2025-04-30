@@ -1,21 +1,29 @@
 import streamlit as st
 import pandas as pd
 import hashlib
-import openai
 import os
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
+from google import genai 
 
 # Carrega variáveis de ambiente
 dotenv_path = os.path.join(os.getcwd(), '.env')
 load_dotenv(dotenv_path)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    "postgresql://banco_litmeapp_user:password@host:port/dbname"
-)
-engine = create_engine(DATABASE_URL)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Verifica se a variável DATABASE_URL foi carregada corretamente
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL is None:
+    raise ValueError("A variável de ambiente 'DATABASE_URL' não foi encontrada no arquivo .env")
+
+# Verifica se a chave da API do Gemini foi carregada corretamente
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+if gemini_api_key is None:
+    raise ValueError("A chave da API do Gemini 'GEMINI_API_KEY' não foi encontrada no arquivo .env")
+
+# Criação do motor de conexão com o banco de dados
+# engine = create_engine(DATABASE_URL)
+engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
 
 # -------------------------------
 # Funções auxiliares
@@ -145,55 +153,77 @@ else:
         # Coleta dos dados do formulário
         dados = {
             "usuario": st.session_state.logged_user,
-                "frequencia_leitura": frequencia_leitura,
-                "tempo_leitura": tempo_leitura,
-                "local_leitura": local_leitura,
-                "tipo_livro": tipo_livro,
-                "generos": ", ".join(generos),
-                "genero_outro": genero_outro,
-                "autor_favorito": autor_favorito,
-                "tamanho_livro": tamanho_livro,
-                "narrativa": narrativa,
-                "sentimento_livro": sentimento_livro,
-                "questoes_sociais": questoes_sociais,
-                "releitura": releitura,
-                "formato_livro": formato_livro,
-                "influencia": influencia,
-                "avaliacoes": avaliacoes,
-                "audiolivros": audiolivros,
-                "interesse_artigos": interesse_artigos,
-                "area_academica": area_academica,
-                "objetivo_leitura": objetivo_leitura,
-                "tipo_conteudo": tipo_conteudo,
-                "nivel_leitura": nivel_leitura,
-                "velocidade": velocidade,
-                "curiosidade": curiosidade,
-                "contexto_cultural": contexto_cultural,
-                "memoria": memoria,
-                "leitura_em_ingles": leitura_em_ingles
+            "frequencia_leitura": frequencia_leitura,
+            "tempo_leitura": tempo_leitura,
+            "local_leitura": local_leitura,
+            "tipo_livro": tipo_livro,
+            "generos": ", ".join(generos),
+            "genero_outro": genero_outro,
+            "autor_favorito": autor_favorito,
+            "tamanho_livro": tamanho_livro,
+            "narrativa": narrativa,
+            "sentimento_livro": sentimento_livro,
+            "questoes_sociais": questoes_sociais,
+            "releitura": releitura,
+            "formato_livro": formato_livro,
+            "influencia": influencia,
+            "avaliacoes": avaliacoes,
+            "audiolivros": audiolivros,
+            "interesse_artigos": interesse_artigos,
+            "area_academica": area_academica,
+            "objetivo_leitura": objetivo_leitura,
+            "tipo_conteudo": tipo_conteudo,
+            "nivel_leitura": nivel_leitura,
+            "velocidade": velocidade,
+            "curiosidade": curiosidade,
+            "contexto_cultural": contexto_cultural,
+            "memoria": memoria,
+            "leitura_em_ingles": leitura_em_ingles
         }
-        # Armazena no banco
+        # Armazena no banco de dados
         df = pd.DataFrame([dados])
         df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
         st.success("Formulário enviado com sucesso! ✅")
 
-        # Integração com OpenAI para gerar perfil narrativo
-        prompt = (
-            "Você é um especialista em análise de perfil de leitura. "
-            "Com base nas seguintes preferências do usuário, gere um perfil narrativo detalhado, "
-            "descrevendo seu estilo de leitura, motivações, pontos fortes e sugestões personalizadas:\n" +
-            pd.Series(dados).to_json(orient="records")
-        )
+        # Integração com Gemini para gerar perfil narrativo
+        prompt = f"""
+            Você é um especialista em análise de perfil de leitura. Com base nas seguintes preferências de leitura, gere um perfil narrativo detalhado, descrevendo o estilo de leitura, motivações, pontos fortes e sugestões personalizadas para o usuário:
+
+            - Frequência de Leitura: {frequencia_leitura}
+            - Tempo de Leitura por Sessão: {tempo_leitura}
+            - Local de Leitura: {local_leitura}
+            - Tipo de Livro Preferido: {tipo_livro}
+            - Gêneros Literários: {', '.join(generos) if generos else 'Nenhum gênero especificado'}
+            - Autor Favorito: {autor_favorito if autor_favorito else 'Não especificado'}
+            - Tamanho de Livro Preferido: {tamanho_livro}
+            - Tipo de Narrativa: {narrativa}
+            - Sentimento Desejado com a Leitura: {sentimento_livro}
+            - Interesse por Questões Sociais/Filosóficas: {questoes_sociais}
+            - Prefere Relêr Livros? {releitura}
+            - Formato de Livro: {formato_livro}
+            - Influência nas Escolhas de Leitura: {influencia}
+            - Interesse por Avaliações: {avaliacoes}
+            - Interesse por Audiolivros: {audiolivros}
+            - Interesse por Artigos Acadêmicos: {interesse_artigos}
+            - Área Acadêmica de Interesse: {area_academica if area_academica else 'Não especificado'}
+            - Objetivo Principal ao Ler: {objetivo_leitura}
+            - Tipo de Conteúdo Consumido no Dia a Dia: {tipo_conteudo}
+            - Nível de Leitura: {nivel_leitura}
+            - Ritmo de Leitura: {velocidade}
+            - Curiosidade sobre Temas: {curiosidade}
+            - Interesse por Culturas Diversas: {contexto_cultural}
+            - Tipo de História Preferida: {memoria}
+            - Leitura em Inglês: {leitura_em_ingles}
+        """
+
+        # Envio para Gemini usando o novo cliente
         try:
-            completion = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "Você é um assistente que gera perfis de leitores com tom narrativo e envolvente."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7
+            client = genai.Client(api_key=gemini_api_key)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",  # Modelo escolhido
+                contents=prompt
             )
-            perfil = completion.choices[0].message.content
+            perfil = response.text
         except Exception as e:
             st.error(f"Erro ao gerar perfil de leitura: {e}")
             perfil = None
@@ -201,3 +231,5 @@ else:
         if perfil:
             st.header("📖 Seu Perfil de Leitura")
             st.write(perfil)
+        else:
+            st.error("Não foi possível gerar seu perfil de leitura.")
