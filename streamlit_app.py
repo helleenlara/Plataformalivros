@@ -6,11 +6,11 @@ from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
 import google.generativeai as genai
+from pathlib import Path
 
-
-# Carrega variáveis de ambiente
-dotenv_path = os.path.join(os.getcwd(), '.env')
+dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
+
 
 # Verifica se a variável DATABASE_URL foi carregada corretamente
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -187,8 +187,7 @@ else:
 
         # Integração com Gemini para gerar perfil narrativo e sugestões
         prompt = f"""
-            Você é um especialista em análise de perfil de leitura. Com base nas seguintes preferências de leitura, gere um perfil narrativo detalhado, descrevendo o estilo de leitura, motivações, pontos fortes e sugestões personalizadas para o usuário:
-
+            Você é um especialista em análise de perfil de leitores. Com base nas respostas abaixo, escreva um pequeno texto (máximo 2 parágrafos curtos) que represente esse leitor como um personagem ou uma alma literária. 
             - Frequência de Leitura: {frequencia_leitura}
             - Tempo de Leitura por Sessão: {tempo_leitura}
             - Local de Leitura: {local_leitura}
@@ -214,18 +213,24 @@ else:
             - Interesse por Culturas Diversas: {contexto_cultural}
             - Tipo de História Preferida: {memoria}
             - Leitura em Inglês: {leitura_em_ingles}
-
-            Com base nisso, forneça um perfil detalhado sobre este leitor, suas motivações, sugestões de livros que ele poderia gostar, e também sugira artigos acadêmicos ou técnicos relacionados à sua área de interesse, caso ele tenha essa preferência.
+            
+            Com base nessas informações, crie um perfil narrativo que capture a essência desse leitor, como se fosse um personagem de um livro.
+            Com base nessas preferências, forneça um perfil interpretativo do leitor, destacando:
+            1. O texto deve **começar naturalmente com uma frase impactante ou poética**, e incluir um **apelido simbólico**, mas **sem usar rótulos como "Apelido" ou "Perfil"**.
+            2. O tom e o estilo devem refletir os **gêneros literários preferidos** do leitor (ex: fantasia, suspense, drama, aventura, etc.).
+            3. Use **interpretação**, não apenas repetição das respostas. Transmita a essência do leitor com base em motivações, ritmo, formato e interesses.
+            4. Não inclua sugestões, dicas ou análises técnicas. Apenas o retrato literário.
+            5. Seja criativo, breve e com tom envolvente — como se o texto fosse o início de uma narrativa sobre esse leitor.
         """
 
         # Envio para Gemini usando o novo cliente
         try:
-            client = genai.Client(api_key=gemini_api_key)
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",  # Modelo escolhido
-                contents=prompt
-            )
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel("gemini-1.5-pro")
+            response = model.generate_content(prompt)
             perfil = response.text
+
+
         except Exception as e:
             st.error(f"Erro ao gerar perfil de leitura: {e}")
             perfil = None
