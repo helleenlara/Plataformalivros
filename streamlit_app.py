@@ -20,7 +20,7 @@ if DATABASE_URL is None:
 # Verifica se a chave da API do Gemini foi carregada corretamente
 gemini_api_key = os.getenv("GEMINI_API_KEY")
 if gemini_api_key is None:
-    raise ValueError("A chave da API do Gemini 'GEMINI_API_KEY' não foi encontrada no arquivo .env")
+    raise ValueError
 
 # Criação do motor de conexão com o banco de dados
 engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
