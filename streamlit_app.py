@@ -157,7 +157,7 @@ else:
     leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
     if st.button("Enviar Respostas", key="btn_submit"):
-    if usuario_ja_respondeu_formulario(st.session_state.logged_user):
+        if usuario_ja_respondeu_formulario(st.session_state.logged_user):
         st.warning("Você já enviou suas preferências anteriormente. Caso deseje atualizar, isso será implementado em breve.")
     else:
         # Coleta dos dados do formulário
