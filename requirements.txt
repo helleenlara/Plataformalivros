@@ -4,5 +4,5 @@ pandas
 sqlalchemy
 psycopg2-binary
 openai
-
+google-generativeai
 python-dotenv
