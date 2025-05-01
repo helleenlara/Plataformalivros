@@ -6,8 +6,6 @@ from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
 
-
-
 # Carrega variáveis de ambiente
 dotenv_path = os.path.join(os.getcwd(), '.env')
 load_dotenv(dotenv_path)
@@ -56,13 +54,12 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
-def usuario_ja_respondeu_formulario(usuario):
+def usuario_ja_respondeu_formulario(username):
     with engine.connect() as conn:
         result = conn.execute(text("""
-            SELECT COUNT(*) FROM respostas_formulario WHERE usuario = :usuario
-        """), {"usuario": usuario}).scalar()
-        return result > 0
-
+            SELECT 1 FROM respostas_formulario WHERE usuario = :username LIMIT 1
+        """), {"username": username}).fetchone()
+        return result is not None
 
 # -------------------------------
 # Setup inicial
@@ -76,7 +73,7 @@ verificar_ou_criar_tabela_usuarios()
 if "logged_user" not in st.session_state:
     st.sidebar.title("🔐 Autenticação")
     tab_login, tab_signup = st.sidebar.tabs(["Login", "Cadastrar"])
-    
+
     with tab_login:
         st.subheader("Login")
         login_user = st.text_input("Usuário", key="login_user")
@@ -89,7 +86,7 @@ if "logged_user" not in st.session_state:
                 st.success(f"Bem-vindo(a), {user.nome}!")
             else:
                 st.error("Usuário ou senha incorretos.")
-    
+
     with tab_signup:
         st.subheader("Cadastrar")
         new_user = st.text_input("Usuário", key="new_user")
@@ -102,18 +99,15 @@ if "logged_user" not in st.session_state:
             except IntegrityError:
                 st.error("Este usuário já existe. Escolha outro.")
 else:
-    # -------------------------------
-    # Usuário já autenticado
-    # -------------------------------
     st.sidebar.write(f"👤 {st.session_state.logged_name}")
     if st.sidebar.button("Logout", key="btn_logout"):
         del st.session_state.logged_user
         del st.session_state.logged_name
         st.experimental_rerun()
-    
+
     # ==== Formulário de Preferências de Leitura ====
     st.title("Formulário de Preferências de Leitura")
-    
+
     st.header("1. Sobre seus hábitos de leitura")
     frequencia_leitura = st.radio("Com que frequência você costuma ler?", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
     tempo_leitura = st.radio("Quanto tempo você geralmente dedica à leitura por sessão?", ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
@@ -156,46 +150,42 @@ else:
     memoria = st.radio("Você prefere livros com...", ["Tramas simples e fáceis de acompanhar", "Histórias complexas, com múltiplos personagens e tempos", "Um equilíbrio entre os dois"])
     leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
- if st.button("Enviar Respostas", key="btn_submit"):
-    if usuario_ja_respondeu_formulario(st.session_state.logged_user):
-        st.warning("Você já enviou suas preferências anteriormente. Caso deseje atualizar, isso será implementado em breve.")
-    else:
-        # Coleta dos dados do formulário
-        dados = {
-            "usuario": st.session_state.logged_user,
-            "frequencia_leitura": frequencia_leitura,
-            "tempo_leitura": tempo_leitura,
-            "local_leitura": local_leitura,
-            "tipo_livro": tipo_livro,
-            "generos": ", ".join(generos),
-            "genero_outro": genero_outro,
-            "autor_favorito": autor_favorito,
-            "tamanho_livro": tamanho_livro,
-            "narrativa": narrativa,
-            "sentimento_livro": sentimento_livro,
-            "questoes_sociais": questoes_sociais,
-            "releitura": releitura,
-            "formato_livro": formato_livro,
-            "influencia": influencia,
-            "avaliacoes": avaliacoes,
-            "audiolivros": audiolivros,
-            "interesse_artigos": interesse_artigos,
-            "area_academica": area_academica,
-            "objetivo_leitura": objetivo_leitura,
-            "tipo_conteudo": tipo_conteudo,
-            "nivel_leitura": nivel_leitura,
-            "velocidade": velocidade,
-            "curiosidade": curiosidade,
-            "contexto_cultural": contexto_cultural,
-            "memoria": memoria,
-            "leitura_em_ingles": leitura_em_ingles
-        }
+    if st.button("Enviar Respostas", key="btn_submit"):
+        if usuario_ja_respondeu_formulario(st.session_state.logged_user):
+            st.warning("Você já enviou suas preferências anteriormente. Caso deseje atualizar, isso será implementado em breve.")
+        else:
+            dados = {
+                "usuario": st.session_state.logged_user,
+                "frequencia_leitura": frequencia_leitura,
+                "tempo_leitura": tempo_leitura,
+                "local_leitura": local_leitura,
+                "tipo_livro": tipo_livro,
+                "generos": ", ".join(generos),
+                "genero_outro": genero_outro,
+                "autor_favorito": autor_favorito,
+                "tamanho_livro": tamanho_livro,
+                "narrativa": narrativa,
+                "sentimento_livro": sentimento_livro,
+                "questoes_sociais": questoes_sociais,
+                "releitura": releitura,
+                "formato_livro": formato_livro,
+                "influencia": influencia,
+                "avaliacoes": avaliacoes,
+                "audiolivros": audiolivros,
+                "interesse_artigos": interesse_artigos,
+                "area_academica": area_academica,
+                "objetivo_leitura": objetivo_leitura,
+                "tipo_conteudo": tipo_conteudo,
+                "nivel_leitura": nivel_leitura,
+                "velocidade": velocidade,
+                "curiosidade": curiosidade,
+                "contexto_cultural": contexto_cultural,
+                "memoria": memoria,
+                "leitura_em_ingles": leitura_em_ingles
+            }
 
-        # Armazena no banco de dados
-        df = pd.DataFrame([dados])
-        df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
-        st.success("Formulário enviado com sucesso! ✅")
+            df = pd.DataFrame([dados])
+            df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+            st.success("Formulário enviado com sucesso! ✅")
 
-
-        # Integração com Gemini (temporariamente desativado para testes)
-st.info("🛠️ A geração do perfil de leitura está temporariamente desativada.")
+    st.info("🛠️ A geração do perfil de leitura está temporariamente desativada.")
