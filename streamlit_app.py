@@ -11,6 +11,9 @@ from pathlib import Path
 dotenv_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path)
 
+print("DEBUG: DATABASE_URL =", os.getenv("DATABASE_URL"))
+print("DEBUG: GEMINI_API_KEY =", os.getenv("GEMINI_API_KEY"))
+
 
 # Verifica se a variável DATABASE_URL foi carregada corretamente
 DATABASE_URL = os.getenv("DATABASE_URL")
