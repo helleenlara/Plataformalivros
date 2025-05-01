@@ -190,6 +190,7 @@ else:
             "memoria": memoria,
             "leitura_em_ingles": leitura_em_ingles
         }
+
         # Armazena no banco de dados
         df = pd.DataFrame([dados])
         df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
