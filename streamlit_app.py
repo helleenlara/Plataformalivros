@@ -55,11 +55,16 @@ def autenticar_usuario(username, senha):
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
 def usuario_ja_respondeu_formulario(username):
-    with engine.connect() as conn:
-        result = conn.execute(text("""
-            SELECT 1 FROM respostas_formulario WHERE usuario = :username LIMIT 1
-        """), {"username": username}).fetchone()
-        return result is not None
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT 1 FROM respostas_formulario WHERE usuario = :username LIMIT 1
+            """), {"username": username}).fetchone()
+            return result is not None
+    except Exception as e:
+        st.error(f"Erro ao verificar se o usuário já respondeu: {str(e)}")
+        return False
+
 
 # -------------------------------
 # Setup inicial
