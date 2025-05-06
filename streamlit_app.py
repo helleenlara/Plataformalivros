@@ -150,7 +150,6 @@ else:
     leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
     if st.button("Enviar Respostas", key="btn_submit"):
-        # Coleta dos dados do formulário
         dados = {
             "usuario": st.session_state.logged_user,
             "frequencia_leitura": frequencia_leitura,
@@ -216,20 +215,20 @@ else:
             
             Com base nessas informações, crie um perfil narrativo que capture a essência desse leitor, como se fosse um personagem de um livro.
             Com base nessas preferências, forneça um perfil interpretativo do leitor, destacando:
-            1. O texto deve **começar naturalmente com uma frase impactante ou poética**, e incluir um **apelido simbólico**, mas **sem usar rótulos como "Apelido" ou "Perfil"**.
-            2. O tom e o estilo devem refletir os **gêneros literários preferidos** do leitor (ex: fantasia, suspense, drama, aventura, etc.).
-            3. Use **interpretação**, não apenas repetição das respostas. Transmita a essência do leitor com base em motivações, ritmo, formato e interesses.
-            4. Não inclua sugestões, dicas ou análises técnicas. Apenas o retrato literário.
-            5. Seja criativo, breve e com tom envolvente — como se o texto fosse o início de uma narrativa sobre esse leitor.
+            1. O tom e o estilo devem refletir os **gêneros literários preferidos** do leitor (ex: fantasia, suspense, drama, aventura, etc.).
+            2. Faça a **interpretação** das respostas do leitor, não apenas repetição das respostas. Transmita a essência do leitor com base em motivações, ritmo, formato e interesses.
+            3. O texto deve incluir sugestões, dicas e análises técnicas para poder **enriquecer o perfil** e torná-lo mais interessante.
+            4. O texto deve **evitar clichês** e ser autêntico.
+            5. O texto deve ser acessível a todos os leitores.
         """
 
         # Envio para Gemini usando o novo cliente
         try:
-            genai.configure(api_key=gemini_api_key)
-            model = genai.GenerativeModel("gemini-1.5-pro")
-            response = model.generate_content(prompt)
-            perfil = response.text
-
+            with st.spinner("Gerando seu perfil literário... Isso pode levar alguns segundos."):
+                genai.configure(api_key=gemini_api_key)
+                model = genai.GenerativeModel("gemini-1.5-pro")
+                response = model.generate_content(prompt)
+                perfil = response.text
 
         except Exception as e:
             st.error(f"Erro ao gerar perfil de leitura: {e}")
