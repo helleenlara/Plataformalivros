@@ -23,7 +23,10 @@ if DATABASE_URL is None:
 if gemini_api_key is None:
     raise ValueError("GEMINI_API_KEY não definida no .env")
 
-engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
+engine = create_engine(
+    DATABASE_URL + "?sslmode=require",
+    connect_args={"connect_timeout": 10}
+)
 
 # Funções auxiliares
 def hash_password(password):
