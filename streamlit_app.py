@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import hashlib
 import os
+import json
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
@@ -60,6 +61,21 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
+def buscar_resposta_existente(usuario):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT dados, perfil_gerado FROM respostas_formulario
+            WHERE usuario = :usuario
+        """), {"usuario": usuario}).fetchone()
+        return result
+
+def salvar_resposta(usuario, dados_dict, perfil_gerado):
+    with engine.connect() as conn:
+        conn.execute(text("""
+            INSERT INTO respostas_formulario (usuario, dados, perfil_gerado)
+            VALUES (:usuario, :dados, :perfil)
+        """), {"usuario": usuario, "dados": json.dumps(dados_dict), "perfil": perfil_gerado})
+
 # -------------------------------
 # Setup inicial
 # -------------------------------
@@ -108,7 +124,16 @@ else:
         st.experimental_rerun()
     
     # ==== Formulário de Preferências de Leitura ====
-    st.title("Formulário de Preferências de Leitura")
+    resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+
+    if resposta_existente:
+        st.success("Você já preencheu o formulário. Aqui está seu perfil literário:")
+        st.header("📖 Seu Perfil de Leitura")
+        st.write(resposta_existente.perfil_gerado)
+    else:
+        st.title("Formulário de Preferências de Leitura")
+        # ... continue com o formulário normalmente
+
     
     st.header("1. Sobre seus hábitos de leitura")
     frequencia_leitura = st.radio("Com que frequência você costuma ler?", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
