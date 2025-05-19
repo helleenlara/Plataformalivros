@@ -32,6 +32,17 @@ engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
 # -------------------------------
 # Funções auxiliares
 # -------------------------------
+
+def verificar_ou_criar_tabela_respostas():
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS respostas_formulario (
+                usuario TEXT PRIMARY KEY,
+                dados TEXT,
+                perfil_gerado TEXT
+            );
+        """))
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -81,6 +92,7 @@ def salvar_resposta(usuario, dados_dict, perfil_gerado):
 # -------------------------------
 st.set_page_config(page_title="Plataforma de Livros", layout="wide")
 verificar_ou_criar_tabela_usuarios()
+verificar_ou_criar_tabela_respostas()
 
 # -------------------------------
 # Seção de autenticação
@@ -209,9 +221,12 @@ else:
             "leitura_em_ingles": leitura_em_ingles
         }
         # Armazena no banco de dados
-        df = pd.DataFrame([dados])
-        df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
-        st.success("Formulário enviado com sucesso! ✅")
+        try:
+            salvar_resposta(st.session_state.logged_user, dados, "")
+            st.success("Formulário enviado com sucesso! ✅")
+        except IntegrityError:
+            st.error("Você já enviou esse formulário anteriormente.")
+            st.stop()
 
         # Integração com Gemini para gerar perfil narrativo e sugestões
         prompt = f"""
@@ -264,6 +279,7 @@ else:
             perfil = None
 
         if perfil:
+            salvar_resposta(st.session_state.logged_user, dados, perfil)
             st.header("📖 Seu Perfil de Leitura")
             st.write(perfil)
         else:
