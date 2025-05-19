@@ -43,7 +43,7 @@ def verificar_ou_criar_tabela_usuarios():
 
 def cadastrar_usuario(username, nome, senha):
     senha_hash = hash_password(senha)
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         conn.execute(text("""
             INSERT INTO usuarios (username, nome, senha_hash)
             VALUES (:username, :nome, :senha_hash)
