@@ -10,8 +10,8 @@ import google.generativeai as genai
 from pathlib import Path
 
 # Carrega variáveis de ambiente
-dotenv_path = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path)
+load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Conexão com banco e API
 DATABASE_URL = os.getenv("DATABASE_URL")
