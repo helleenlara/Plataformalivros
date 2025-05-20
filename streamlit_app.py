@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import hashlib
 import os
+import json
 from dotenv import load_dotenv
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine, text
@@ -28,6 +29,19 @@ engine = create_engine(DATABASE_URL, connect_args={"connect_timeout": 10})
 # -------------------------------
 # Funções auxiliares
 # -------------------------------
+def salvar_resposta(usuario, dados_dict, perfil_gerado):
+    with engine.begin() as conn:
+        conn.execute(text("""
+            INSERT INTO respostas_formulario (usuario, dados, perfil_gerado)
+            VALUES (:usuario, :dados, :perfil)
+            ON CONFLICT (usuario)
+            DO UPDATE SET dados = :dados, perfil_gerado = :perfil
+        """), {
+            "usuario": usuario,
+            "dados": json.dumps(dados_dict),
+            "perfil": perfil_gerado
+        })
+
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -180,8 +194,8 @@ else:
             "leitura_em_ingles": leitura_em_ingles
         }
         # Armazena no banco de dados
-        df = pd.DataFrame([dados])
-        df.to_sql("respostas_formulario", engine, if_exists="append", index=False)
+        salvar_resposta(st.session_state.logged_user, dados, "")
+
         st.success("Formulário enviado com sucesso! ✅")
 
         # Integração com Gemini para gerar perfil narrativo e sugestões
@@ -237,5 +251,9 @@ else:
         if perfil:
             st.header("📖 Seu Perfil de Leitura")
             st.write(perfil)
+            if perfil:
+                salvar_resposta(st.session_state.logged_user, dados, perfil)
+                st.header("📖 Seu Perfil de Leitura")
+                st.write(perfil)
         else:
             st.error("Não foi possível gerar seu perfil de leitura.")
