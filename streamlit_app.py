@@ -71,6 +71,13 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
+def buscar_resposta_existente(usuario):
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT dados, perfil_gerado FROM respostas_formulario
+            WHERE usuario = :usuario
+        """), {"usuario": usuario}).fetchone()
+        return result
 # -------------------------------
 # Setup inicial
 # -------------------------------
@@ -109,17 +116,23 @@ if "logged_user" not in st.session_state:
             except IntegrityError:
                 st.error("Este usuário já existe. Escolha outro.")
 else:
-    # -------------------------------
-    # Usuário já autenticado
-    # -------------------------------
     st.sidebar.write(f"👤 {st.session_state.logged_name}")
     if st.sidebar.button("Logout", key="btn_logout"):
         del st.session_state.logged_user
         del st.session_state.logged_name
         st.experimental_rerun()
-    
-    # ==== Formulário de Preferências de Leitura ====
-    st.title("Formulário de Preferências de Leitura")
+
+    # ✅ Verifica se o usuário está logado antes de acessar o session_state
+    if "logged_user" in st.session_state:
+        resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+
+        if resposta_existente:
+            st.success("Você já preencheu o formulário. Aqui está seu perfil literário:")
+            st.header("📖 Seu Perfil de Leitura")
+            st.write(resposta_existente.perfil_gerado)
+        else:
+            # ⬇️ seu formulário vai aqui dentro
+            st.title("Formulário de Preferências de Leitura")
     
     st.header("1. Sobre seus hábitos de leitura")
     frequencia_leitura = st.radio("Com que frequência você costuma ler?", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
@@ -164,8 +177,7 @@ else:
     leitura_em_ingles = st.radio("Você lê livros ou artigos em inglês?", ["Sim, frequentemente", "Às vezes, quando necessário", "Não, prefiro conteúdos em português"])
 
     if st.button("Enviar Respostas", key="btn_submit"):
-        dados = {
-            "usuario": st.session_state.logged_user,
+        dados = {            
             "frequencia_leitura": frequencia_leitura,
             "tempo_leitura": tempo_leitura,
             "local_leitura": local_leitura,
@@ -200,47 +212,45 @@ else:
 
         # Integração com Gemini para gerar perfil narrativo e sugestões
         prompt = f"""
-            Você é um especialista em análise de perfil de leitores. Com base nas respostas abaixo, escreva um pequeno texto (máximo 2 parágrafos curtos) que represente esse leitor como um personagem ou uma alma literária. 
-            - Frequência de Leitura: {frequencia_leitura}
-            - Tempo de Leitura por Sessão: {tempo_leitura}
-            - Local de Leitura: {local_leitura}
-            - Tipo de Livro Preferido: {tipo_livro}
-            - Gêneros Literários: {', '.join(generos) if generos else 'Nenhum gênero especificado'}
-            - Autor Favorito: {autor_favorito if autor_favorito else 'Não especificado'}
-            - Tamanho de Livro Preferido: {tamanho_livro}
-            - Tipo de Narrativa: {narrativa}
-            - Sentimento Desejado com a Leitura: {sentimento_livro}
-            - Interesse por Questões Sociais/Filosóficas: {questoes_sociais}
-            - Prefere Relêr Livros? {releitura}
-            - Formato de Livro: {formato_livro}
-            - Influência nas Escolhas de Leitura: {influencia}
-            - Interesse por Avaliações: {avaliacoes}
-            - Interesse por Audiolivros: {audiolivros}
-            - Interesse por Artigos Acadêmicos: {interesse_artigos}
-            - Área Acadêmica de Interesse: {area_academica if area_academica else 'Não especificado'}
-            - Objetivo Principal ao Ler: {objetivo_leitura}
-            - Tipo de Conteúdo Consumido no Dia a Dia: {tipo_conteudo}
-            - Nível de Leitura: {nivel_leitura}
-            - Ritmo de Leitura: {velocidade}
-            - Curiosidade sobre Temas: {curiosidade}
-            - Interesse por Culturas Diversas: {contexto_cultural}
-            - Tipo de História Preferida: {memoria}
-            - Leitura em Inglês: {leitura_em_ingles}
-            
-            Com base nessas informações, crie um perfil narrativo que capture a essência desse leitor, como se fosse um personagem de um livro.
-            Com base nessas preferências, forneça um perfil interpretativo do leitor, destacando:
-            1. O tom e o estilo devem refletir os **gêneros literários preferidos** do leitor (ex: fantasia, suspense, drama, aventura, etc.).
-            2. Faça a **interpretação** das respostas do leitor, não apenas repetição das respostas. Transmita a essência do leitor com base em motivações, ritmo, formato e interesses.
-            3. O texto deve incluir sugestões, dicas e análises técnicas para poder **enriquecer o perfil** e torná-lo mais interessante.
-            4. O texto deve **evitar clichês** e ser autêntico.
-            5. O texto deve ser acessível a todos os leitores.
-        """
+                Você é um especialista em perfis de leitura. Com base nas informações abaixo, determine **qual tipo de leitor eu sou**, escolhendo entre:
+
+                - O Esnobe Literário
+                - O fã de clubes do livro
+                - O Leitor Parcial
+                - O viciado em sagas
+                - O leitor polígamo
+                - O releitor
+                - O fã de livros físicos
+                - O leitor digital
+                - O amante de spoilers
+                - O fã de adaptações cinematográficas
+                - O realista
+                - O fanático por ficção
+                - O fã de livros para jovens adultos
+                - O Leitor Emocional
+                - O leitor da moda
+                - O leitor universitário
+                - O leitor neurótico
+                - O escritor-leitor
+                - O anotador
+
+                1. Indique **qual tipo de leitor melhor representa a pessoa**, com base nos dados.
+                2. Explique brevemente **por que esse tipo foi atribuído**, citando comportamentos e preferências que levaram a essa conclusão.
+                3. Em seguida, recomende **2 a 4 livros** adequados para esse tipo de leitor. Para cada livro, forneça:
+                - Título
+                - Autor
+                - Breve justificativa
+
+                Aqui estão os dados do leitor:
+                ```json
+                {json.dumps(dados, ensure_ascii=False, indent=2)}
+                """
 
         # Envio para Gemini usando o novo cliente
         try:
             with st.spinner("Gerando seu perfil literário... Isso pode levar alguns segundos."):
                 genai.configure(api_key=gemini_api_key)
-                model = genai.GenerativeModel("gemini-1.5-pro")
+                model = genai.GenerativeModel("gemini-2.0-flash")
                 response = model.generate_content(prompt)
                 perfil = response.text
 
