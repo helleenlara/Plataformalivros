@@ -11,7 +11,32 @@ from pathlib import Path
 from wordcloud import WordCloud
 
 # Configuração da página
-st.set_page_config(page_title="Plataforma de Livros", layout="wide")
+st.set_page_config(page_title="Plataforma LitMe", layout="wide")
+
+# Estilo personalizado
+st.markdown("""
+    <style>
+        .main {
+            background-color: #f9f9f9;
+        }
+        h1, h2, h3 {
+            color: #1f4172;
+        }
+        .stButton>button {
+            color: white;
+            background-color: #1f4172;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+        .stSidebar {
+            background-color: #e9f0fa;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Logo e navegação
+st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
 st.sidebar.title("📚 Navegação")
 pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor"])
 
@@ -68,7 +93,7 @@ def salvar_resposta(usuario, dados_dict, perfil_gerado):
             SET dados = :dados, perfil_gerado = :perfil
         """), {
             "usuario": usuario,
-            "dados": json.dumps(dados_dict),
+            "dados": dados_dict if isinstance(dados_dict, str) else json.dumps(dados_dict),
             "perfil": perfil_gerado
         })
 
@@ -84,14 +109,17 @@ def carregar_dados():
         with engine.connect() as conn:
             df = pd.read_sql("SELECT * FROM respostas_formulario", conn)
             if "dados" in df.columns:
+                df["dados"] = df["dados"].apply(lambda x: json.dumps(x) if isinstance(x, dict) else x)
                 dados_dicts = df["dados"].apply(json.loads).apply(pd.Series)
                 df = pd.concat([df.drop(columns=["dados"]), dados_dicts], axis=1)
             return df
-    except:
+    except Exception as e:
+        st.error(f"❌ Erro ao carregar os dados do banco: {e}")
         return pd.DataFrame()
 
-# Criar tabela de usuários se não existir
 verificar_ou_criar_tabela_usuarios()
+
+
 if pagina == "📋 Formulário do Leitor":
     if "logged_user" not in st.session_state:
         st.sidebar.title("🔐 Autenticação")
@@ -136,7 +164,8 @@ if pagina == "📋 Formulário do Leitor":
         if "form_submitted" not in st.session_state:
             st.title("📋 Formulário de Preferências de Leitura")
 
-            # Formulário real com todas as perguntas que você já usou
+            idade = st.selectbox("Faixa etária:", [
+                "Menor de 18", "18 a 24", "25 a 34", "35 a 44", "45 a 60", "Acima de 60"])
             frequencia_leitura = st.radio("Frequência de leitura", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
             tempo_leitura = st.radio("Tempo por sessão", ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
             local_leitura = st.radio("Onde você lê?", ["Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"])
@@ -166,6 +195,7 @@ if pagina == "📋 Formulário do Leitor":
 
             if st.button("Enviar Respostas", key="btn_submit"):
                 dados = {
+                    "idade": idade,
                     "frequencia_leitura": frequencia_leitura,
                     "tempo_leitura": tempo_leitura,
                     "local_leitura": local_leitura,
@@ -196,101 +226,91 @@ if pagina == "📋 Formulário do Leitor":
 
                 genai.configure(api_key=gemini_api_key)
                 prompt = f"Gere um perfil literário com base nas respostas:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
-                genai.configure(api_key=gemini_api_key)
-
                 model = genai.GenerativeModel("gemini-2.0-flash")
                 chat = model.start_chat()
                 response = chat.send_message(prompt)
-
                 perfil = response.text
 
                 salvar_resposta(st.session_state.logged_user, dados, perfil)
-
                 st.session_state.form_submitted = True
                 st.session_state.perfil = perfil
                 st.rerun()
         else:
             st.title("📖 Seu Perfil Literário")
             st.write(st.session_state.perfil)
+
 elif pagina == "📖 Painel do Escritor":
     st.title("📖 Painel do Escritor")
-
     st.markdown("""
-    Este painel utiliza conceitos de **Big Data em Python** para fornecer insights úteis a escritores,
-    baseando-se nas preferências reais dos leitores coletadas pela plataforma.
-    """)
+Este painel utiliza conceitos de **Big Data em Python** para fornecer insights úteis a escritores,
+baseando-se nas preferências reais dos leitores coletadas pela plataforma.
+""")
 
     try:
-        df = pd.read_sql("SELECT * FROM respostas_formulario", engine)
+        df = carregar_dados()
         st.success("✅ Dados carregados com sucesso.")
-
-        if "dados" in df.columns:
-            df["dados"] = df["dados"].apply(
-                lambda x: json.loads(x) if isinstance(x, str) else x)
-            df_expandidos = pd.json_normalize(df["dados"])
-            df = pd.concat([df.drop(columns=["dados"]), df_expandidos], axis=1)
-
+        if df.empty:
+            st.warning("Ainda não há dados suficientes para análise")
+            st.stop()
     except Exception as e:
         st.error(f"❌ Erro ao carregar os dados: {e}")
         st.stop()
 
-    if df.empty:
-        st.warning("Ainda não há dados suficientes para análise.")
-        st.stop()
+    faixa_etaria_opcao = st.selectbox("Filtrar por faixa etária:", ["Todas"] + sorted(df["idade"].dropna().unique().tolist()))
+    if faixa_etaria_opcao != "Todas":
+        df = df[df["idade"] == faixa_etaria_opcao]
 
-    st.header("📊 Análise Estatística dos Leitores")
-
+    st.header( "📊 Análise Estatística dos Leitores")
     col1, col2 = st.columns(2)
     with col1:
         if "formato_livro" in df.columns:
-            st.subheader("📘 Formato de Leitura Preferido")
+            st.subheader("Formato de Leitura Preferido")
             st.bar_chart(df["formato_livro"].value_counts())
 
     with col2:
         if "generos" in df.columns:
             generos_series = df["generos"].str.split(", ").explode()
-            st.subheader("📚 Gêneros Literários Mais Citados")
+            st.subheader("Gêneros Literários Mais Citados")
             st.bar_chart(generos_series.value_counts())
 
     col3, col4 = st.columns(2)
     with col3:
         if "objetivo_leitura" in df.columns:
-            st.subheader("🎯 Objetivo de Leitura")
+            st.subheader("Objetivo de Leitura")
             st.bar_chart(df["objetivo_leitura"].value_counts())
 
     with col4:
         if "sentimento_livro" in df.columns:
-            st.subheader("💫 Sentimentos Desejados")
+            st.subheader("Sentimentos Desejados")
             st.bar_chart(df["sentimento_livro"].value_counts())
 
-    if "perfil_gerado" in df.columns:
-        st.header("🧠 Análise Inteligente com IA")
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Baixar dados filtrados (.csv)", data=csv, file_name="dados_filtrados.csv", mime="text/csv")
 
-        if "perfil_gerado" in df.columns:
-            st.header("🧠 Análise Inteligente com IA")
+    st.header("💡 Sugestões para Escrita com IA")
+    try:
+        genai.configure(api_key=gemini_api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        chat = model.start_chat()
 
-        try:
-            textos = " ".join(df["perfil_gerado"]).lower()
-
-            # Configura chave da API
-            genai.configure(api_key=gemini_api_key)
-
-            # Usa o modelo Gemini 2.0 Flash
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            chat = model.start_chat(history=[])
-
+        textos = " ".join(df["perfil_gerado"]).lower()
+        if faixa_etaria_opcao == "Todas":
             prompt = f"""
-Analise os seguintes perfis literários de leitores.
-Identifique os principais temas, estilos narrativos e interesses recorrentes.
-Resuma em tópicos úteis para escritores que desejam alinhar sua escrita ao público.
+Analise os seguintes perfis literários de leitores e identifique os principais temas, estilos narrativos e interesses recorrentes.
 
 Perfis:
 {textos}
 """
+        else:
+            prompt = f"""
+Analise os perfis literários dos leitores com faixa etária '{faixa_etaria_opcao}'.
+Quais temas, estilos e interesses são mais comuns neste grupo?
 
-            response = chat.send_message(prompt.strip())
-            st.markdown(response.text)
+Perfis:
+{textos}
+"""
+        response = chat.send_message(prompt.strip())
+        st.markdown(response.text)
 
-        except Exception as iae:
-            st.warning(f"❌ Erro na análise com IA: {iae}")
-
+    except Exception as iae:
+        st.warning(f"❌ Erro na análise com IA: {iae}")
