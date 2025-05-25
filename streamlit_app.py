@@ -17,20 +17,20 @@ st.set_page_config(page_title="Plataforma LitMe", layout="wide")
 st.markdown("""
     <style>
         .main {
-            background-color: #f9f9f9;
+            background-color: #FFFFFF;
         }
         h1, h2, h3 {
-            color: #1f4172;
+            color: #1C5F5A;
         }
         .stButton>button {
             color: white;
-            background-color: #1f4172;
+            background-color: #1C5F5A;
             border-radius: 8px;
             padding: 10px 20px;
             font-size: 16px;
         }
         .stSidebar {
-            background-color: #e9f0fa;
+            background-color: #E9E5DB;
         }
     </style>
 """, unsafe_allow_html=True)
