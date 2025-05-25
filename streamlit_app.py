@@ -38,7 +38,7 @@ st.markdown("""
 # Logo e navegação
 st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
 st.sidebar.title("📚 Navegação")
-pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor"])
+pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor", "🎮 Gamificação"])
 
 # Carregar variáveis de ambiente
 dotenv_path = Path(__file__).resolve().parent / ".env"
@@ -314,3 +314,32 @@ Perfis:
 
     except Exception as iae:
         st.warning(f"❌ Erro na análise com IA: {iae}")
+elif pagina == "🎮 Gamificação":
+    from gamificacao import (
+    registrar_leitura,
+    mostrar_status,
+    verificar_conquistas,
+    mostrar_conquistas,
+    ranking_top,
+    desafio_ativo,
+    validar_desafio
+)
+
+if "logged_user" in st.session_state:
+    usuario = st.session_state.logged_user
+    st.title("🎮 Gamificação da Leitura")
+
+    registrar_leitura(engine, usuario)
+    mostrar_status(engine, usuario)
+    verificar_conquistas(engine, usuario)
+    mostrar_conquistas(engine, usuario)
+    ranking_top(engine)
+
+    st.subheader("🔥 Desafio da Semana")
+    st.info(desafio_ativo())
+    if validar_desafio(engine, usuario):
+        st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+    else:
+        st.warning("📚 Continue lendo para concluir o desafio!")
+else:
+    st.warning("Faça login para acessar a gamificação.")
