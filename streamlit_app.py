@@ -38,7 +38,7 @@ st.markdown("""
 # Logo e navegação
 st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
 st.sidebar.title("📚 Navegação")
-pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor"])
+pagina = st.sidebar.radio("Escolha uma seção:", ["📖 Página do Leitor", "✍️ Painel do Escritor"])
 
 # Carregar variáveis de ambiente
 dotenv_path = Path(__file__).resolve().parent / ".env"
@@ -120,7 +120,7 @@ def carregar_dados():
 verificar_ou_criar_tabela_usuarios()
 
 
-if pagina == "📋 Formulário do Leitor":
+if pagina == "📖 Página do Leitor":
     if "logged_user" not in st.session_state:
         st.sidebar.title("🔐 Autenticação")
         aba_login, aba_cadastro = st.sidebar.tabs(["Login", "Cadastrar"])
@@ -239,8 +239,8 @@ if pagina == "📋 Formulário do Leitor":
             st.title("📖 Seu Perfil Literário")
             st.write(st.session_state.perfil)
 
-elif pagina == "📖 Painel do Escritor":
-    st.title("📖 Painel do Escritor")
+elif pagina == "✍️ Painel do Escritor":
+    st.title("✍️ Painel do Escritor")
     st.markdown("""
 Este painel utiliza conceitos de **Big Data em Python** para fornecer insights úteis a escritores,
 baseando-se nas preferências reais dos leitores coletadas pela plataforma.
