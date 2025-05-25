@@ -247,8 +247,7 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
 """)
 
     try:
-        df = carregar_dados()
-        st.success("✅ Dados carregados com sucesso.")
+        df = carregar_dados()       
         if df.empty:
             st.warning("Ainda não há dados suficientes para análise")
             st.stop()
@@ -288,58 +287,46 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
     st.download_button("⬇️ Baixar dados filtrados (.csv)", data=csv, file_name="dados_filtrados.csv", mime="text/csv")
 
     st.header("💡 Sugestões para Escrita com IA")
-    try:
-        genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        chat = model.start_chat()
+try:
+    genai.configure(api_key=gemini_api_key)
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    chat = model.start_chat()
 
-        textos = " ".join(df["perfil_gerado"]).lower()
-        if faixa_etaria_opcao == "Todas":
-            prompt = f"""
-Analise os seguintes perfis literários de leitores e identifique os principais temas, estilos narrativos e interesses recorrentes.
+    textos = " ".join(df["perfil_gerado"].dropna()).lower().strip()
 
-Perfis:
-{textos}
-"""
-        else:
-            prompt = f"""
-Analise os perfis literários dos leitores com faixa etária '{faixa_etaria_opcao}'.
-Quais temas, estilos e interesses são mais comuns neste grupo?
+    if not textos:
+        st.warning("⚠️ Não há perfis suficientes para análise.")
+        st.stop()
 
-Perfis:
-{textos}
-"""
-        response = chat.send_message(prompt.strip())
-        st.markdown(response.text)
-
-    except Exception as iae:
-        st.warning(f"❌ Erro na análise com IA: {iae}")
-elif pagina == "🎮 Gamificação":
-    from gamificacao import (
-    registrar_leitura,
-    mostrar_status,
-    verificar_conquistas,
-    mostrar_conquistas,
-    ranking_top,
-    desafio_ativo,
-    validar_desafio
-)
-
-if "logged_user" in st.session_state:
-    usuario = st.session_state.logged_user
-    st.title("🎮 Gamificação da Leitura")
-
-    registrar_leitura(engine, usuario)
-    mostrar_status(engine, usuario)
-    verificar_conquistas(engine, usuario)
-    mostrar_conquistas(engine, usuario)
-    ranking_top(engine)
-
-    st.subheader("🔥 Desafio da Semana")
-    st.info(desafio_ativo())
-    if validar_desafio(engine, usuario):
-        st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+    if faixa_etaria_opcao == "Todas":
+        prompt = (
+            "Você é um assistente literário com foco em análise de público.\n\n"
+            "A seguir, veja uma coleção de perfis literários de leitores.\n"
+            "Analise com profundidade e extraia:\n\n"
+            "1. Temas mais mencionados ou desejados.\n"
+            "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
+            "3. Gêneros literários populares.\n"
+            "4. Padrões recorrentes de leitura.\n"
+            "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
+            f"Perfis:\n{textos}"
+        )
     else:
-        st.warning("📚 Continue lendo para concluir o desafio!")
-else:
-    st.warning("Faça login para acessar a gamificação.")
+        prompt = (
+            f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
+            f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
+            "Analise com profundidade e extraia:\n\n"
+            "1. Temas mais desejados.\n"
+            "2. Estilos narrativos predominantes.\n"
+            "3. Gêneros mais apreciados.\n"
+            "4. Padrões comuns de comportamento de leitura.\n"
+            "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
+            f"Perfis:\n{textos}"
+        )
+
+    response = chat.send_message(prompt.strip())
+    st.markdown("### 💡 Análise Gerada pela IA")
+    st.markdown(response.text)
+    st.download_button("⬇️ Baixar Análise", data=response.text, file_name="analise_ia.txt")
+
+except Exception as e:
+    st.warning(f"❌ Erro na análise com IA: {e}")
