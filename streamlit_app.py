@@ -38,7 +38,7 @@ st.markdown("""
 # Logo e navegação
 st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
 st.sidebar.title("📚 Navegação")
-pagina = st.sidebar.radio("Escolha uma seção:", ["📖 Página do Leitor", "✍️ Painel do Escritor"])
+pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor", "🎮 Gamificação"])
 
 # Carregar variáveis de ambiente
 dotenv_path = Path(__file__).resolve().parent / ".env"
