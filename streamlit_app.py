@@ -235,7 +235,7 @@ if pagina == "📋 Formulário do Leitor":
                 }
 
                 genai.configure(api_key=gemini_api_key)
-                prompt = f"Gere um perfil literário com base nas respostas e recomende livros com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                prompt = f"Gere um perfil literário com base nas respostas e recomende livros e artigos academicos com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
                 model = genai.GenerativeModel("gemini-2.0-flash")
                 chat = model.start_chat()
                 response = chat.send_message(prompt)
