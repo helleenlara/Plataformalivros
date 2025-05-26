@@ -178,6 +178,7 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
+# ALTERAÇÃO 1: Definição da tabela 'respostas_formulario' com PRIMARY KEY e ON CONFLICT DO UPDATE
 def salvar_resposta(usuario, dados_dict, perfil_gerado):
     with engine.begin() as conn:
         conn.execute(text("""
