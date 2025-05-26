@@ -10,6 +10,15 @@ from sqlalchemy import create_engine, text
 import google.generativeai as genai
 from pathlib import Path
 from wordcloud import WordCloud
+from gamificacao import (
+    registrar_leitura,
+    mostrar_status,
+    verificar_conquistas,
+    mostrar_conquistas,
+    ranking_top,
+    desafio_ativo,
+    validar_desafio
+)
 
 # Configuração da página
 st.set_page_config(page_title="Plataforma LitMe", layout="wide")
@@ -332,3 +341,32 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
 
     except Exception as e:
         st.warning(f"❌ Erro na análise com IA: {e}")
+elif pagina == "🎮 Gamificação":
+    from gamificacao import (
+    registrar_leitura,
+    mostrar_status,
+    verificar_conquistas,
+    mostrar_conquistas,
+    ranking_top,
+    desafio_ativo,
+    validar_desafio
+)
+
+    if "logged_user" in st.session_state:
+        usuario = st.session_state.logged_user
+        st.title("🎮 Gamificação da Leitura")
+
+        registrar_leitura(engine, usuario)
+        mostrar_status(engine, usuario)
+        verificar_conquistas(engine, usuario)
+        mostrar_conquistas(engine, usuario)
+        ranking_top(engine)
+
+        st.subheader("🔥 Desafio da Semana")
+        st.info(desafio_ativo())
+        if validar_desafio(engine, usuario):
+            st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+        else:
+            st.warning("📚 Continue lendo para concluir o desafio!")
+    else:
+        st.warning("Faça login para acessar a gamificação.")
