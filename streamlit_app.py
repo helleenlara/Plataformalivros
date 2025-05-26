@@ -189,7 +189,7 @@ if pagina == "📋 Formulário do Leitor":
             sentimento_livro = st.radio("Sentimento desejado", ["Inspirado", "Reflexivo", "Empolgado", "Confortável", "Assustado"])
             questoes_sociais = st.radio("Gosta de temas sociais?", ["Sim", "Depende do tema", "Prefiro histórias leves"])
             releitura = st.radio("Reler livros?", ["Sempre procuro novas leituras", "Gosto de reler", "Um pouco dos dois"])
-            formato_livro = st.radio("Formato preferido", ["Físicos", "Digitais", "Tanto faz"])
+            formato_livro = st.radio("Formato preferido", ["Físico", "Digital", "Tanto faz"])
             influencia = st.radio("Influência na escolha", ["Críticas", "Amigos", "Premiações", "Sinopse e capa"])
             avaliacoes = st.radio("Importância das avaliações", ["Sim", "Prefiro personalizadas", "Tanto faz"])
             audiolivros = st.radio("Audiolivros?", ["Sim", "Não", "Depende"])
