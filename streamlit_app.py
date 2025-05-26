@@ -296,7 +296,10 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
     with col1:
         if "formato_livro" in df.columns:
             st.subheader("Formato de Leitura Preferido")
-            st.bar_chart(df["formato_livro"].value_counts())
+        
+            formatos_filtrados = df[df["formato_livro"].isin(["Físico", "Digital"])]
+            st.bar_chart(formatos_filtrados["formato_livro"].value_counts())
+
 
     with col2:
         if "generos" in df.columns:
@@ -341,33 +344,38 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
             "Analise os perfis abaixo e identifique:\n\n"
             "1. Temas e assuntos mais valorizados pelos leitores.\n"
             "2. Estilos narrativos preferidos (ex: introspectivo, emocionante, com reviravoltas, etc).\n"
-            "3. Emoções ou sensações que o público busca nos livros.\n"
-            "4. Padrões de interesse e preferências recorrentes.\n\n"
-            "**Com base nisso, gere recomendações práticas para escritores**, como por exemplo:\n"
+            "3. Emoções ou sensações mais desejadas.\n"
+            "4. Padrões de comportamento e preferências literárias recorrentes.\n\n"
+            "**Com base nisso, forneça recomendações práticas para escritores**, incluindo:\n"
             "- Que tipo de enredo desenvolver\n"
             "- Que tipo de linguagem utilizar\n"
             "- Que tipos de personagens criar\n"
-            "- Como conectar emocionalmente com esse público\n\n"
-            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            "- Como se conectar emocionalmente com esse público\n\n"
+            "**Para cada sugestão, explique claramente o motivo com base nos padrões detectados nos perfis fornecidos.**\n"
+            "As justificativas devem mencionar dados, termos, ou preferências frequentes encontradas nos perfis abaixo.\n\n"
+            "**Apenas forneça as recomendações com explicações. Não faça perguntas nem continue a conversa.**\n\n"
             f"Aqui estão os perfis dos leitores:\n{textos}"
-            )
+        )
         else:
             prompt = (
             f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
             "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.\n"
             "Analise os perfis abaixo e identifique:\n\n"
-            "1. Temas e assuntos mais valorizados pelos leitores dessa faixa etária.\n"
+            "1. Temas e assuntos mais valorizados por leitores dessa faixa etária.\n"
             "2. Estilos narrativos preferidos.\n"
             "3. Emoções ou sensações desejadas.\n"
-            "4. Padrões de interesse e preferências específicas dessa faixa.\n\n"
-            "**Com base nisso, gere recomendações práticas para escritores**, como:\n"
-            "- Enredos sugeridos\n"
-            "- Estilo de escrita\n"
-            "- Gatilhos emocionais\n"
-            "- Gêneros ideais para esse público\n\n"
-            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            "4. Padrões de interesse e comportamento de leitura recorrentes.\n\n"
+            "**Com base nisso, forneça recomendações práticas para escritores**, incluindo:\n"
+            "- Enredos recomendados\n"
+            "- Linguagem mais adequada\n"
+            "- Tipos de personagens ideais\n"
+            "- Estratégias emocionais e de conexão com o leitor\n\n"
+            "**Explique o porquê de cada sugestão com base nas evidências encontradas nos perfis analisados.**\n"
+            "Use termos recorrentes e preferências citadas como base para suas justificativas.\n\n"
+            "**Apenas forneça as recomendações e suas explicações. Não faça perguntas nem continue a conversa.**\n\n"
             f"Aqui estão os perfis dos leitores:\n{textos}"
-            )
+        )
+
 
 
         response = chat.send_message(prompt.strip())
@@ -406,3 +414,4 @@ elif pagina == "🎮 Gamificação":
             st.warning("📚 Continue lendo para concluir o desafio!")
     else:
         st.warning("Faça login para acessar a gamificação.")
+        
