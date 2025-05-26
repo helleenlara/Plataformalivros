@@ -248,6 +248,27 @@ if pagina == "📋 Formulário do Leitor":
         else:
             st.title("📖 Seu Perfil Literário")
             st.write(st.session_state.perfil)
+            if st.button("🔄 Gerar nova recomendação", key="btn_nova_recomendacao"):
+                resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+                if resposta_existente:
+                    dados = resposta_existente.dados if isinstance(resposta_existente.dados, dict) else json.loads(resposta_existente.dados)
+                    genai.configure(api_key=gemini_api_key)
+                    prompt = (
+                        "Com base nas respostas abaixo, crie um perfil literário atualizado.\n"
+                        "Depois, recomende:\n"
+                        "1. Livros relevantes com base nos gostos literários.\n"
+                        "2. Artigos acadêmicos conforme os interesses acadêmicos (se aplicável).\n\n"
+                        f"{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                    )
+                    model = genai.GenerativeModel("gemini-2.0-flash")
+                    chat = model.start_chat()
+                    response = chat.send_message(prompt)
+                    perfil = response.text
+
+                    salvar_resposta(st.session_state.logged_user, dados, perfil)
+                    st.session_state.perfil = perfil
+                    st.success("✅ Nova recomendação gerada!")
+                    st.rerun()
 
 elif pagina == "📖 Painel do Escritor":
     st.title("📖 Painel do Escritor")
