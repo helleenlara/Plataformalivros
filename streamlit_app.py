@@ -483,7 +483,7 @@ else:
                 with col_releitura:
                     releitura = st.radio("Reler livros?", [""] + ["Sempre procuro novas leituras", "Gosto de reler", "Um pouco dos dois"], index=0)
                 with col_formato:
-                    formato_livro = st.radio("Formato preferido", [""] + ["Físicos", "Digitais", "Tanto faz"], index=0)
+                    formato_livro = st.radio("Formato preferido", [""] + ["Físico", "Digital", "Tanto faz"], index=0)
                 st.markdown("---") # Divisão aqui
 
                 # Seção 4: Influências e Outras Mídias
