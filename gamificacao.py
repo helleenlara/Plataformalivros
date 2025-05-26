@@ -109,3 +109,4 @@ def validar_desafio(engine, username):
             WHERE username = :u AND data >= CURRENT_DATE - INTERVAL '6 days'
         """), {"u": username}).scalar() or 0
         return semana >= 50
+

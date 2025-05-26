@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import hashlib
@@ -9,6 +10,16 @@ from sqlalchemy import create_engine, text
 import google.generativeai as genai
 from pathlib import Path
 from wordcloud import WordCloud
+from datetime import datetime
+from gamificacao import (
+    registrar_leitura,
+    mostrar_status,
+    verificar_conquistas,
+    mostrar_conquistas,
+    ranking_top,
+    desafio_ativo,
+    validar_desafio
+)
 
 # Configuração da página
 st.set_page_config(page_title="Plataforma LitMe", layout="wide")
@@ -38,7 +49,7 @@ st.markdown("""
 # Logo e navegação
 st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
 st.sidebar.title("📚 Navegação")
-pagina = st.sidebar.radio("Escolha uma seção:", ["📋 Formulário do Leitor", "📖 Painel do Escritor", "🎮 Gamificação"])
+pagina = st.sidebar.radio("Escolha uma seção:", ["📖 Página do Leitor", "🎮 Gamificação", "✍️ Painel do Escritor"])
 
 # Carregar variáveis de ambiente
 dotenv_path = Path(__file__).resolve().parent / ".env"
@@ -225,7 +236,7 @@ if pagina == "📖 Página do Leitor":
                 }
 
                 genai.configure(api_key=gemini_api_key)
-                prompt = f"Gere um perfil literário com base nas respostas e recomende livros com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                prompt = f"Gere um perfil literário com base nas respostas e recomende livros e artigos academicos com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
                 model = genai.GenerativeModel("gemini-2.0-flash")
                 chat = model.start_chat()
                 response = chat.send_message(prompt)
@@ -238,6 +249,27 @@ if pagina == "📖 Página do Leitor":
         else:
             st.title("📖 Seu Perfil Literário")
             st.write(st.session_state.perfil)
+            if st.button("🔄 Gerar nova recomendação", key="btn_nova_recomendacao"):
+                resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+                if resposta_existente:
+                    dados = resposta_existente.dados if isinstance(resposta_existente.dados, dict) else json.loads(resposta_existente.dados)
+                    genai.configure(api_key=gemini_api_key)
+                    prompt = (
+                        "Com base nas respostas abaixo, crie um perfil literário atualizado.\n"
+                        "Depois, recomende:\n"
+                        "1. Livros relevantes com base nos gostos literários.\n"
+                        "2. Artigos acadêmicos conforme os interesses acadêmicos (se aplicável).\n\n"
+                        f"{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                    )
+                    model = genai.GenerativeModel("gemini-2.0-flash")
+                    chat = model.start_chat()
+                    response = chat.send_message(prompt)
+                    perfil = response.text
+
+                    salvar_resposta(st.session_state.logged_user, dados, perfil)
+                    st.session_state.perfil = perfil
+                    st.success("✅ Nova recomendação gerada!")
+                    st.rerun()
 
 elif pagina == "✍️ Painel do Escritor":
     st.title("✍️ Painel do Escritor")
@@ -287,6 +319,7 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
     st.download_button("⬇️ Baixar dados filtrados (.csv)", data=csv, file_name="dados_filtrados.csv", mime="text/csv")
 
     st.header("💡 Sugestões para Escrita com IA")
+
     try:
         genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel("gemini-2.0-flash")
@@ -298,30 +331,44 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
             st.warning("⚠️ Não há perfis suficientes para análise.")
             st.stop()
 
+        from datetime import datetime
+        data_atual = datetime.now().strftime("%B de %Y")
+
         if faixa_etaria_opcao == "Todas":
             prompt = (
-                "Você é um assistente literário com foco em análise de público.\n\n"
-                "A seguir, veja uma coleção de perfis literários de leitores.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais mencionados ou desejados.\n"
-                "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
-                "3. Gêneros literários populares.\n"
-                "4. Padrões recorrentes de leitura.\n"
-                "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
-                f"Perfis:\n{textos}"
+            f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros.\n\n"
+            "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar o público com mais impacto.\n"
+            "Analise os perfis abaixo e identifique:\n\n"
+            "1. Temas e assuntos mais valorizados pelos leitores.\n"
+            "2. Estilos narrativos preferidos (ex: introspectivo, emocionante, com reviravoltas, etc).\n"
+            "3. Emoções ou sensações que o público busca nos livros.\n"
+            "4. Padrões de interesse e preferências recorrentes.\n\n"
+            "**Com base nisso, gere recomendações práticas para escritores**, como por exemplo:\n"
+            "- Que tipo de enredo desenvolver\n"
+            "- Que tipo de linguagem utilizar\n"
+            "- Que tipos de personagens criar\n"
+            "- Como conectar emocionalmente com esse público\n\n"
+            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            f"Aqui estão os perfis dos leitores:\n{textos}"
             )
         else:
             prompt = (
-                f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
-                f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais desejados.\n"
-                "2. Estilos narrativos predominantes.\n"
-                "3. Gêneros mais apreciados.\n"
-                "4. Padrões comuns de comportamento de leitura.\n"
-                "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
-                f"Perfis:\n{textos}"
+            f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
+            "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.\n"
+            "Analise os perfis abaixo e identifique:\n\n"
+            "1. Temas e assuntos mais valorizados pelos leitores dessa faixa etária.\n"
+            "2. Estilos narrativos preferidos.\n"
+            "3. Emoções ou sensações desejadas.\n"
+            "4. Padrões de interesse e preferências específicas dessa faixa.\n\n"
+            "**Com base nisso, gere recomendações práticas para escritores**, como:\n"
+            "- Enredos sugeridos\n"
+            "- Estilo de escrita\n"
+            "- Gatilhos emocionais\n"
+            "- Gêneros ideais para esse público\n\n"
+            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            f"Aqui estão os perfis dos leitores:\n{textos}"
             )
+
 
         response = chat.send_message(prompt.strip())
         st.markdown("### 💡 Análise Gerada pela IA")
@@ -330,3 +377,32 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
 
     except Exception as e:
         st.warning(f"❌ Erro na análise com IA: {e}")
+elif pagina == "🎮 Gamificação":
+    from gamificacao import (
+    registrar_leitura,
+    mostrar_status,
+    verificar_conquistas,
+    mostrar_conquistas,
+    ranking_top,
+    desafio_ativo,
+    validar_desafio
+)
+
+    if "logged_user" in st.session_state:
+        usuario = st.session_state.logged_user
+        st.title("🎮 Gamificação da Leitura")
+
+        registrar_leitura(engine, usuario)
+        mostrar_status(engine, usuario)
+        verificar_conquistas(engine, usuario)
+        mostrar_conquistas(engine, usuario)
+        ranking_top(engine)
+
+        st.subheader("🔥 Desafio da Semana")
+        st.info(desafio_ativo())
+        if validar_desafio(engine, usuario):
+            st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+        else:
+            st.warning("📚 Continue lendo para concluir o desafio!")
+    else:
+        st.warning("Faça login para acessar a gamificação.")
