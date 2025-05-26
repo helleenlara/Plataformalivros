@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import hashlib
@@ -10,6 +9,7 @@ from sqlalchemy import create_engine, text
 import google.generativeai as genai
 from pathlib import Path
 from wordcloud import WordCloud
+from datetime import datetime
 from gamificacao import (
     registrar_leitura,
     mostrar_status,
@@ -27,8 +27,15 @@ st.set_page_config(page_title="Plataforma LitMe", layout="wide")
 st.markdown("""
     <style>
         .main {
-            background-color: #FFFFFF;
+            background-color: #E9E5DB !important;
         }
+        .st-emotion-cache-uf99v8.e1g8pov61 {
+            background-color: #E9E5DB !important;
+        }
+        body {
+            background-color: #E9E5DB !important;
+        }
+
         h1, h2, h3 {
             color: #1C5F5A;
         }
@@ -38,17 +45,93 @@ st.markdown("""
             border-radius: 8px;
             padding: 10px 20px;
             font-size: 16px;
+            margin-top: 15px;
+            cursor: pointer;
         }
-        .stSidebar {
-            background-color: #E9E5DB;
+        .main .block-container {
+            padding-left: 2rem;
+            padding-right: 2rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .stTabs [data-testid="stTab"] {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1C5F5A;
+        }
+        .stTabs [data-testid="stTab"][aria-selected="true"] {
+            border-bottom-color: #1C5F5A;
+            color: #1C5F5A;
+        }
+        section[data-testid="stSidebarV1"] {
+            display: flex;
+            visibility: visible;
+            transform: translateX(0%);
+            transition: transform 300ms ease-in-out;
+             background-color: #E9E5DB;
+        }
+        .st-emotion-cache-1jm6g9l.e1g8pov60 {
+            display: none !important;
+        }
+        .st-emotion-cache-zkj8ys.e1g8pov61 {
+            display: none !important;
+        }
+        .st-emotion-cache-uf99v8.e1g8pov61 {
+            padding-right: 1rem;
+            padding-left: 1rem;
+        }
+        .stTextInput, .stSelectbox, .stRadio, .stMultiSelect {
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        div.stButton {
+            display: flex;
+            justify-content: center;
+        }
+        .element-container .stMarkdown, .element-container .stAlert {
+            text-align: center;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        h1.css-10trblm.e16nr0p30 {
+            text-align: center;
+            width: 100%;
+        }
+
+        .justified-text {
+            text-align: justify;
+        }
+
+        .highlight-container {
+            border: 2px solid #1C5F5A;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: #F8F5EE;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            text-align: center;
+        }
+        .highlight-container .stButton button {
+            background-color: #28a745;
+            color: white;
+            font-weight: bold;
+            border: 2px solid #218838;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+            transition: all 0.2s ease-in-out;
+            width: 80%;
+            max-width: 300px;
+        }
+        .highlight-container .stButton button:hover {
+            background-color: #218838;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            transform: scale(1.07);
         }
     </style>
 """, unsafe_allow_html=True)
-
-# Logo e navegação
-st.sidebar.image("static/logo_litme.jpg", use_container_width=True)
-st.sidebar.title("📚 Navegação")
-pagina = st.sidebar.radio("Escolha uma seção:", ["📖 Página do Leitor", "🎮 Gamificação", "✍️ Painel do Escritor"])
 
 # Carregar variáveis de ambiente
 dotenv_path = Path(__file__).resolve().parent / ".env"
@@ -97,6 +180,13 @@ def autenticar_usuario(username, senha):
 def salvar_resposta(usuario, dados_dict, perfil_gerado):
     with engine.begin() as conn:
         conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS respostas_formulario (
+                usuario TEXT PRIMARY KEY,
+                dados TEXT,
+                perfil_gerado TEXT
+            );
+        """))
+        conn.execute(text("""
             INSERT INTO respostas_formulario (usuario, dados, perfil_gerado)
             VALUES (:usuario, :dados, :perfil)
             ON CONFLICT (usuario) DO UPDATE
@@ -127,191 +217,52 @@ def carregar_dados():
         st.error(f"❌ Erro ao carregar os dados do banco: {e}")
         return pd.DataFrame()
 
-verificar_ou_criar_tabela_usuarios()
-
-
-if pagina == "📖 Página do Leitor":
-    if "logged_user" not in st.session_state:
-        st.sidebar.title("🔐 Autenticação")
-        aba_login, aba_cadastro = st.sidebar.tabs(["Login", "Cadastrar"])
-
-        with aba_login:
-            st.subheader("Login")
-            login_user = st.text_input("Usuário", key="login_user")
-            login_pass = st.text_input("Senha", type="password", key="login_pass")
-            if st.button("Entrar", key="btn_login"):
-                user = autenticar_usuario(login_user, login_pass)
-                if user:
-                    st.session_state.logged_user = user.username
-                    st.session_state.logged_name = user.nome
-                    st.rerun()
-                else:
-                    st.error("Usuário ou senha incorretos.")
-
-        with aba_cadastro:
-            st.subheader("Cadastrar")
-            new_user = st.text_input("Usuário", key="new_user")
-            new_name = st.text_input("Nome", key="new_name")
-            new_pass = st.text_input("Senha", type="password", key="signup_pass")
-            if st.button("Cadastrar", key="btn_signup"):
-                try:
-                    cadastrar_usuario(new_user, new_name, new_pass)
-                    st.success("Conta criada! Faça login.")
-                except IntegrityError:
-                    st.error("Este usuário já existe. Escolha outro.")
-    else:
-        st.sidebar.write(f"👤 {st.session_state.logged_name}")
-        if st.sidebar.button("Logout", key="btn_logout"):
-            for key in ["logged_user", "logged_name", "form_submitted", "perfil"]:
-                st.session_state.pop(key, None)
-            st.rerun()
-
-        resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
-        if resposta_existente and "form_submitted" not in st.session_state:
-            st.session_state.form_submitted = True
-            st.session_state.perfil = resposta_existente.perfil_gerado
-
-        if "form_submitted" not in st.session_state:
-            st.title("📋 Formulário de Preferências de Leitura")
-
-            idade = st.selectbox("Faixa etária:", [
-                "Menor de 18", "18 a 24", "25 a 34", "35 a 44", "45 a 60", "Acima de 60"])
-            frequencia_leitura = st.radio("Frequência de leitura", ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"])
-            tempo_leitura = st.radio("Tempo por sessão", ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"])
-            local_leitura = st.radio("Onde você lê?", ["Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"])
-            tipo_livro = st.radio("Prefere ficção ou não ficção?", ["Ficção", "Não ficção", "Gosto dos dois"])
-            generos = st.multiselect("Gêneros favoritos", ["Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror", "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
-            genero_outro = st.text_input("Qual outro gênero?") if "Outro" in generos else ""
-            autor_favorito = st.text_input("Autor favorito")
-            tamanho_livro = st.radio("Tamanho preferido", ["Curtos (-200 páginas)", "Médios (200-400 páginas)", "Longos (+400 páginas)", "Não tenho preferência"])
-            narrativa = st.radio("Estilo de narrativa", ["Ação rápida", "Narrativa introspectiva", "Equilibrado entre os dois"])
-            sentimento_livro = st.radio("Sentimento desejado", ["Inspirado", "Reflexivo", "Empolgado", "Confortável", "Assustado"])
-            questoes_sociais = st.radio("Gosta de temas sociais?", ["Sim", "Depende do tema", "Prefiro histórias leves"])
-            releitura = st.radio("Reler livros?", ["Sempre procuro novas leituras", "Gosto de reler", "Um pouco dos dois"])
-            formato_livro = st.radio("Formato preferido", ["Físicos", "Digitais", "Tanto faz"])
-            influencia = st.radio("Influência na escolha", ["Críticas", "Amigos", "Premiações", "Sinopse e capa"])
-            avaliacoes = st.radio("Importância das avaliações", ["Sim", "Prefiro personalizadas", "Tanto faz"])
-            audiolivros = st.radio("Audiolivros?", ["Sim", "Não", "Depende"])
-            interesse_artigos = st.radio("Lê artigos acadêmicos?", ["Sim", "Às vezes", "Não"])
-            area_academica = st.text_input("Áreas de interesse acadêmico") if interesse_artigos != "Não" else ""
-            objetivo_leitura = st.radio("Objetivo ao ler", ["Aprender", "Relaxar", "Desenvolvimento pessoal", "Conexão emocional", "Outros"])
-            tipo_conteudo = st.radio("Tipo de conteúdo consumido", ["Textos longos", "Blogs", "Vídeos", "Podcasts", "Notícias"])
-            nivel_leitura = st.radio("Nível de leitura", ["Iniciante", "Intermediário", "Avançado"])
-            velocidade = st.radio("Ritmo de leitura", ["Rápido", "Moderado", "Lento"])
-            curiosidade = st.radio("Curiosidade por temas novos", ["Sim", "Depende", "Não muito"])
-            contexto_cultural = st.radio("Livros de outras culturas?", ["Sim", "Depende", "Prefiro minha realidade"])
-            memoria = st.radio("Tipo de trama", ["Simples", "Complexa", "Equilibrada"])
-            leitura_em_ingles = st.radio("Lê em inglês?", ["Sim", "Às vezes", "Não"])
-
-            if st.button("Enviar Respostas", key="btn_submit"):
-                dados = {
-                    "idade": idade,
-                    "frequencia_leitura": frequencia_leitura,
-                    "tempo_leitura": tempo_leitura,
-                    "local_leitura": local_leitura,
-                    "tipo_livro": tipo_livro,
-                    "generos": ", ".join(generos),
-                    "genero_outro": genero_outro,
-                    "autor_favorito": autor_favorito,
-                    "tamanho_livro": tamanho_livro,
-                    "narrativa": narrativa,
-                    "sentimento_livro": sentimento_livro,
-                    "questoes_sociais": questoes_sociais,
-                    "releitura": releitura,
-                    "formato_livro": formato_livro,
-                    "influencia": influencia,
-                    "avaliacoes": avaliacoes,
-                    "audiolivros": audiolivros,
-                    "interesse_artigos": interesse_artigos,
-                    "area_academica": area_academica,
-                    "objetivo_leitura": objetivo_leitura,
-                    "tipo_conteudo": tipo_conteudo,
-                    "nivel_leitura": nivel_leitura,
-                    "velocidade": velocidade,
-                    "curiosidade": curiosidade,
-                    "contexto_cultural": contexto_cultural,
-                    "memoria": memoria,
-                    "leitura_em_ingles": leitura_em_ingles
-                }
-
-                genai.configure(api_key=gemini_api_key)
-                prompt = f"Gere um perfil literário com base nas respostas e recomende livros e artigos academicos com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
-                model = genai.GenerativeModel("gemini-2.0-flash")
-                chat = model.start_chat()
-                response = chat.send_message(prompt)
-                perfil = response.text
-
-                salvar_resposta(st.session_state.logged_user, dados, perfil)
-                st.session_state.form_submitted = True
-                st.session_state.perfil = perfil
-                st.rerun()
-        else:
-            st.title("📖 Seu Perfil Literário")
-            st.write(st.session_state.perfil)
-            if st.button("🔄 Gerar nova recomendação", key="btn_nova_recomendacao"):
-                resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
-                if resposta_existente:
-                    dados = resposta_existente.dados if isinstance(resposta_existente.dados, dict) else json.loads(resposta_existente.dados)
-                    genai.configure(api_key=gemini_api_key)
-                    prompt = (
-                        "Com base nas respostas abaixo, crie um perfil literário atualizado.\n"
-                        "Depois, recomende:\n"
-                        "1. Livros relevantes com base nos gostos literários.\n"
-                        "2. Artigos acadêmicos conforme os interesses acadêmicos (se aplicável).\n\n"
-                        f"{json.dumps(dados, indent=2, ensure_ascii=False)}"
-                    )
-                    model = genai.GenerativeModel("gemini-2.0-flash")
-                    chat = model.start_chat()
-                    response = chat.send_message(prompt)
-                    perfil = response.text
-
-                    salvar_resposta(st.session_state.logged_user, dados, perfil)
-                    st.session_state.perfil = perfil
-                    st.success("✅ Nova recomendação gerada!")
-                    st.rerun()
-
-elif pagina == "✍️ Painel do Escritor":
-    st.title("✍️ Painel do Escritor")
+# Painel do Escritor Conteúdo
+def painel_escritor_conteudo():
+    st.header("✍️ Painel do Escritor")
     st.markdown("""
-Este painel utiliza conceitos de **Big Data em Python** para fornecer insights úteis a escritores,
-baseando-se nas preferências reais dos leitores coletadas pela plataforma.
-""")
+    <div class="justified-text">
+    Este painel utiliza conceitos de **Big Data em Python** para fornecer insights úteis a escritores,
+    baseando-se nas preferências reais dos leitores coletadas pela plataforma.
+    </div>
+    """, unsafe_allow_html=True)
 
     try:
-        df = carregar_dados()       
+        df = carregar_dados()
         if df.empty:
-            st.warning("Ainda não há dados suficientes para análise")
-            st.stop()
+            st.warning("Ainda não há dados suficientes para análise.")
+            st.info("Convide mais leitores para preencherem o formulário de preferências para que a análise de dados seja mais rica!")
+            return
     except Exception as e:
         st.error(f"❌ Erro ao carregar os dados: {e}")
-        st.stop()
+        return
 
     faixa_etaria_opcao = st.selectbox("Filtrar por faixa etária:", ["Todas"] + sorted(df["idade"].dropna().unique().tolist()))
     if faixa_etaria_opcao != "Todas":
         df = df[df["idade"] == faixa_etaria_opcao]
 
-    st.header( "📊 Análise Estatística dos Leitores")
+    st.subheader("📊 Análise Estatística dos Leitores")
     col1, col2 = st.columns(2)
     with col1:
         if "formato_livro" in df.columns:
-            st.subheader("Formato de Leitura Preferido")
+            st.markdown("### Formato de Leitura Preferido")
             st.bar_chart(df["formato_livro"].value_counts())
 
     with col2:
         if "generos" in df.columns:
             generos_series = df["generos"].str.split(", ").explode()
-            st.subheader("Gêneros Literários Mais Citados")
+            st.markdown("### Gêneros Literários Mais Citados")
             st.bar_chart(generos_series.value_counts())
 
     col3, col4 = st.columns(2)
     with col3:
         if "objetivo_leitura" in df.columns:
-            st.subheader("Objetivo de Leitura")
+            st.markdown("### Objetivo de Leitura")
             st.bar_chart(df["objetivo_leitura"].value_counts())
 
     with col4:
         if "sentimento_livro" in df.columns:
-            st.subheader("Sentimentos Desejados")
+            st.markdown("### Sentimentos Desejados")
             st.bar_chart(df["sentimento_livro"].value_counts())
 
     csv = df.to_csv(index=False).encode("utf-8")
@@ -327,67 +278,418 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
         textos = " ".join(df["perfil_gerado"].dropna()).lower().strip()
 
         if not textos:
-            st.warning("⚠️ Não há perfis suficientes para análise.")
-            st.stop()
+            st.warning("⚠️ Não há perfis suficientes para análise para a IA.")
+            return
+
+        data_atual = datetime.now().strftime("%B de %Y")
 
         if faixa_etaria_opcao == "Todas":
             prompt = (
-                "Você é um assistente literário com foco em análise de público.\n\n"
-                "A seguir, veja uma coleção de perfis literários de leitores.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais mencionados ou desejados.\n"
-                "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
-                "3. Gêneros literários populares.\n"
-                "4. Padrões recorrentes de leitura.\n"
-                "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
-                f"Perfis:\n{textos}"
+                f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros.\n\n"
+                "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar o público com mais impacto.\n"
+                "Analise os perfis abaixo e identifique:\n\n"
+                "1. Temas e assuntos mais valorizados pelos leitores.\n"
+                "2. Estilos narrativos preferidos (ex: introspectivo, emocionante, com reviravoltas, etc).\n"
+                "3. Emoções ou sensações que o público busca nos livros.\n"
+                "4. Padrões de interesse e preferências recorrentes.\n\n"
+                "**Com base nisso, gere recomendações práticas para escritores**, como por exemplo:\n"
+                "- Que tipo de enredo desenvolver\n"
+                "- Que tipo de linguagem utilizar\n"
+                "- Que tipos de personagens criar\n"
+                "- Como conectar emocionalmente com esse público\n\n"
+                "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+                f"Aqui estão os perfis dos leitores:\n{textos}"
             )
         else:
             prompt = (
-                f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
-                f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais desejados.\n"
-                "2. Estilos narrativos predominantes.\n"
-                "3. Gêneros mais apreciados.\n"
-                "4. Padrões comuns de comportamento de leitura.\n"
-                "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
-                f"Perfis:\n{textos}"
+                f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
+                "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.\n"
+                "Analise os perfis abaixo e identifique:\n\n"
+                "1. Temas e assuntos mais valorizados pelos leitores dessa faixa etária.\n"
+                "2. Estilos narrativos preferidos.\n"
+                "3. Emoções ou sensações desejadas.\n"
+                "4. Padrões de interesse e preferências específicas dessa faixa.\n\n"
+                "**Com base nisso, gere recomendações práticas para escritores**, como:\n"
+                "- Enredos sugeridos\n"
+                "- Estilo de escrita\n"
+                "- Gatilhos emocionais\n"
+                "- Gêneros ideais para esse público\n\n"
+                "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+                f"Aqui estão os perfis dos leitores:\n{textos}"
             )
 
         response = chat.send_message(prompt.strip())
         st.markdown("### 💡 Análise Gerada pela IA")
-        st.markdown(response.text)
+        st.markdown(f'<div class="justified-text">{response.text}</div>', unsafe_allow_html=True)
         st.download_button("⬇️ Baixar Análise", data=response.text, file_name="analise_ia.txt")
 
     except Exception as e:
         st.warning(f"❌ Erro na análise com IA: {e}")
-elif pagina == "🎮 Gamificação":
-    from gamificacao import (
-    registrar_leitura,
-    mostrar_status,
-    verificar_conquistas,
-    mostrar_conquistas,
-    ranking_top,
-    desafio_ativo,
-    validar_desafio
-)
 
-    if "logged_user" in st.session_state:
-        usuario = st.session_state.logged_user
-        st.title("🎮 Gamificação da Leitura")
+# Lógica Principal da Aplicação
+verificar_ou_criar_tabela_usuarios()
 
-        registrar_leitura(engine, usuario)
-        mostrar_status(engine, usuario)
-        verificar_conquistas(engine, usuario)
-        mostrar_conquistas(engine, usuario)
-        ranking_top(engine)
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "login"
 
-        st.subheader("🔥 Desafio da Semana")
-        st.info(desafio_ativo())
-        if validar_desafio(engine, usuario):
-            st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+if "logged_user" not in st.session_state and st.session_state.current_page == "login":
+    col_left_login, col_center_login, col_right_login = st.columns([1, 2, 1])
+
+    with col_center_login:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.image("static/litme logo wo bg.png", width=250)
+
+        st.title("Bem-vindo(a) à Plataforma LitMe!")
+        st.info("Sua jornada literária começa aqui. Faça login ou cadastre-se, ou explore o Painel do Escritor como visitante.")
+
+        aba_login, aba_cadastro, aba_visitante = st.tabs(["🔐 Login", "📝 Cadastrar", "✍️ Painel do Escritor (Visitante)"])
+
+        with aba_login:
+            st.subheader("Acesse sua Conta")
+            login_user = st.text_input("Nome de Usuário", key="login_user_main")
+            login_pass = st.text_input("Senha", type="password", key="login_pass_main")
+            if st.button("Entrar", key="btn_login_main"):
+                user = autenticar_usuario(login_user, login_pass)
+                if user:
+                    st.session_state.logged_user = user.username
+                    st.session_state.logged_name = user.nome
+                    st.session_state.current_page = "leitor"
+                    st.success(f"Bem-vindo(a), {user.nome}! Redirecionando...")
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos.")
+
+        with aba_cadastro:
+            st.subheader("Crie sua Conta")
+            new_user = st.text_input("Escolha um Nome de Usuário", key="new_user_main")
+            new_name = st.text_input("Seu Nome Completo", key="new_name_main")
+            new_pass = st.text_input("Escolha uma Senha", type="password", key="signup_pass_main")
+            if st.button("Cadastrar", key="btn_signup_main"):
+                try:
+                    cadastrar_usuario(new_user, new_name, new_pass)
+                    st.success("Conta criada com sucesso! Agora você pode fazer login.")
+                except IntegrityError:
+                    st.error("Este usuário já existe. Escolha outro nome de usuário.")
+
+        with aba_visitante:
+            st.subheader("Explore o Painel do Escritor")
+            st.info("Acesse insights e análises de dados de leitura sem precisar criar uma conta. **Funcionalidades de gravação ou personalização não estarão disponíveis.**")
+
+            st.markdown('<div class="highlight-container">', unsafe_allow_html=True)
+            st.markdown("**Clique para explorar tendências e preferências de leitores!**")
+            if st.button("Acessar Painel do Escritor", key="btn_visitor_writer_panel"):
+                st.session_state.current_page = "painel_escritor_visitante"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+
+elif st.session_state.current_page == "painel_escritor_visitante" and "logged_user" not in st.session_state:
+    col_left_visitor, col_center_visitor, col_right_visitor = st.columns([1, 2, 1])
+    with col_center_visitor:
+        col1_v, col2_v, col3_v = st.columns([1, 2, 1])
+        with col2_v:
+            st.image("static/litme logo wo bg.png", width=100)
+
+        st.title("✍️ Painel do Escritor (Modo Visitante)")
+        st.info("Você está visualizando o painel do escritor no modo visitante. Para ter acesso completo e outras funcionalidades, por favor, faça login ou cadastre-se.")
+        if st.button("Voltar para Login", key="btn_back_to_login"):
+            st.session_state.current_page = "login"
+            st.rerun()
+        st.markdown("---")
+        painel_escritor_conteudo()
+        st.markdown("---")
+        st.info("Para ter acesso completo e outras funcionalidades, por favor, faça login ou cadastre-se.")
+        if st.button("Ir para Login/Cadastro", key="btn_go_to_login_bottom"):
+            st.session_state.current_page = "login"
+            st.rerun()
+
+else:
+    with st.sidebar:
+        st.image("static/logo_litme.jpg", use_container_width=True)
+        st.write(f"👤 **Bem-vindo(a):** {st.session_state.logged_name}")
+        if st.button("Logout", key="btn_logout_sidebar"):
+            for key in ["logged_user", "logged_name", "form_submitted", "perfil", "current_page"]:
+                st.session_state.pop(key, None)
+            st.session_state.current_page = "login"
+            st.rerun()
+        st.markdown("---")
+        st.subheader("Navegação")
+        if "pagina_selecionada" not in st.session_state:
+            st.session_state.pagina_selecionada = "📖 Perfil do Leitor"
+
+        pagina = st.radio("Escolha uma seção:",
+                            ["📖 Perfil do Leitor", "🎮 Gamificação", "✍️ Painel do Escritor"],
+                            index=["📖 Perfil do Leitor", "🎮 Gamificação", "✍️ Painel do Escritor"].index(st.session_state.pagina_selecionada))
+        st.session_state.pagina_selecionada = pagina
+
+    if pagina == "📖 Perfil do Leitor":
+        st.header("📖 Seu Perfil Literário Detalhado")
+        resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+        if resposta_existente and "form_submitted" not in st.session_state:
+            st.session_state.form_submitted = True
+            st.session_state.perfil = resposta_existente.perfil_gerado
+
+        if "form_submitted" not in st.session_state:
+            st.subheader("📋 Formulário de Preferências de Leitura")
+            st.info("Por favor, preencha este formulário para que possamos entender suas preferências e gerar um perfil literário para você.")
+
+            col_left, col_form, col_right = st.columns([1, 3, 1])
+
+            with col_form:
+                # Seção 1: Dados Demográficos e Hábitos de Leitura
+                st.subheader("Sua Leitura")
+                col_idade, col_freq = st.columns(2)
+                with col_idade:
+                    idade = st.selectbox("Faixa etária:", [""] + ["Menor de 18", "18 a 24", "25 a 34", "35 a 44", "45 a 60", "Acima de 60"], index=0)
+                with col_freq:
+                    frequencia_leitura = st.radio("Frequência de leitura", [""] + ["Todos os dias", "Algumas vezes por semana", "Algumas vezes por mês", "Raramente"], index=0)
+
+                col_tempo, col_local = st.columns(2)
+                with col_tempo:
+                    tempo_leitura = st.radio("Tempo por sessão", [""] + ["Menos de 30 minutos", "30 minutos a 1 hora", "1 a 2 horas", "Mais de 2 horas"], index=0)
+                with col_local:
+                    local_leitura = st.radio("Onde você lê?", [""] + ["Em casa", "No transporte público", "Em bibliotecas/cafés", "Outros lugares"], index=0)
+                st.markdown("---") # Divisão aqui
+
+                # Seção 2: Preferências de Gênero e Autoria
+                st.subheader("Gêneros e Autores")
+                col_tipo, col_generos = st.columns(2)
+                with col_tipo:
+                    tipo_livro = st.radio("Prefere ficção ou não ficção?", [""] + ["Ficção", "Não ficção", "Gosto dos dois"], index=0)
+                with col_generos:
+                    generos = st.multiselect("Gêneros favoritos (selecione um ou mais):", ["Ficção científica", "Fantasia", "Romance", "Mistério/Thriller", "Terror", "História", "Biografia", "Desenvolvimento pessoal", "Negócios", "Filosofia", "Outro"])
+                genero_outro = st.text_input("Qual outro gênero?", key="genero_outro_input") if "Outro" in generos else ""
+
+                # Lógica para Autor Favorito
+                tem_autor_favorito = st.radio("Você tem um autor favorito?", ["", "Sim", "Não"], index=0, key="tem_autor_favorito")
+                autor_favorito = ""
+                if tem_autor_favorito == "Sim":
+                    autor_favorito = st.text_input("Qual o nome do seu autor favorito?", key="qual_autor_favorito")
+                st.markdown("---") # Divisão aqui
+
+                # Seção 3: Estilo e Formato de Leitura
+                st.subheader("Estilo e Formato")
+                col_tamanho, col_narrativa = st.columns(2)
+                with col_tamanho:
+                    tamanho_livro = st.radio("Tamanho preferido", [""] + ["Curtos (-200 páginas)", "Médios (200-400 páginas)", "Longos (+400 páginas)", "Não tenho preferência"], index=0)
+                with col_narrativa:
+                    narrativa = st.radio("Estilo de narrativa", [""] + ["Ação rápida", "Narrativa introspectiva", "Equilibrado entre os dois"], index=0)
+
+                col_sentimento, col_sociais = st.columns(2)
+                with col_sentimento:
+                    sentimento_livro = st.radio("Sentimento desejado ao ler", [""] + ["Inspirado", "Reflexivo", "Empolgado", "Confortável", "Assustado"], index=0)
+                with col_sociais:
+                    questoes_sociais = st.radio("Gosta de temas sociais?", [""] + ["Sim", "Depende do tema", "Prefiro histórias leves"], index=0)
+
+                col_releitura, col_formato = st.columns(2)
+                with col_releitura:
+                    releitura = st.radio("Reler livros?", [""] + ["Sempre procuro novas leituras", "Gosto de reler", "Um pouco dos dois"], index=0)
+                with col_formato:
+                    formato_livro = st.radio("Formato preferido", [""] + ["Físicos", "Digitais", "Tanto faz"], index=0)
+                st.markdown("---") # Divisão aqui
+
+                # Seção 4: Influências e Outras Mídias
+                st.subheader("Influências e Mídias")
+                col_influencia, col_avaliacoes = st.columns(2)
+                with col_influencia:
+                    influencia = st.radio("O que mais influencia sua escolha de um livro?", [""] + ["Críticas", "Amigos", "Premiações", "Sinopse e capa"], index=0)
+                with col_avaliacoes:
+                    avaliacoes = st.radio("Importância das avaliações e recomendações", [""] + ["Sim", "Prefiro personalizadas", "Tanto faz"], index=0)
+
+                col_audio, col_artigos = st.columns(2)
+                with col_audio:
+                    audiolivros = st.radio("Você ouve audiolivros?", [""] + ["Sim", "Não", "Depende"], index=0)
+                with col_artigos:
+                    interesse_artigos = st.radio("Você lê artigos acadêmicos ou científicos?", [""] + ["Sim", "Às vezes", "Não"], index=0)
+                area_academica = st.text_input("Em quais áreas acadêmicas você tem interesse?", key="area_academica_input") if interesse_artigos in ["Sim", "Às vezes"] else ""
+                st.markdown("---") # Divisão aqui
+
+                # Seção 5: Propósito e Nível de Leitura
+                st.subheader("Propósito e Nível")
+                col_objetivo, col_conteudo = st.columns(2)
+                with col_objetivo:
+                    objetivo_leitura = st.radio("Qual seu principal objetivo ao ler?", [""] + ["Aprender", "Relaxar", "Desenvolvimento pessoal", "Conexão emocional", "Outros"], index=0)
+                with col_conteudo:
+                    tipo_conteudo = st.radio("Qual tipo de conteúdo você mais consome?", [""] + ["Textos longos", "Blogs", "Vídeos", "Podcasts", "Notícias"], index=0)
+
+                col_nivel, col_velocidade = st.columns(2)
+                with col_nivel:
+                    nivel_leitura = st.radio("Como você descreveria seu nível de leitura?", [""] + ["Iniciante", "Intermediário", "Avançado"], index=0)
+                with col_velocidade:
+                    velocidade = st.radio("Qual o seu ritmo de leitura?", [""] + ["Rápido", "Moderado", "Lento"], index=0)
+                st.markdown("---") # Divisão aqui
+
+                # Seção 6: Curiosidade e Cultural
+                st.subheader("Curiosidade e Cultural")
+                col_curiosidade, col_cultural = st.columns(2)
+                with col_curiosidade:
+                    curiosidade = st.radio("Você tem curiosidade por temas novos e desconhecidos?", [""] + ["Sim", "Depende", "Não muito"], index=0)
+                with col_cultural:
+                    contexto_cultural = st.radio("Você se interessa por livros de outras culturas e perspectivas?", [""] + ["Sim", "Depende", "Prefiro minha realidade"], index=0)
+
+                col_memoria, col_ingles = st.columns(2)
+                with col_memoria:
+                    memoria = st.radio("Você prefere tramas mais simples ou complexas?", [""] + ["Simples", "Complexa", "Equilibrada"], index=0)
+                with col_ingles:
+                    leitura_em_ingles = st.radio("Você lê livros em inglês?", [""] + ["Sim", "Às vezes", "Não"], index=0)
+                st.markdown("---") # Divisão aqui
+
+
+                if st.button("Enviar Respostas e Gerar Perfil", key="btn_submit"):
+                    # Validação de campos obrigatórios
+                    required_fields = {
+                        "Faixa etária": idade,
+                        "Frequência de leitura": frequencia_leitura,
+                        "Tempo por sessão": tempo_leitura,
+                        "Onde você lê": local_leitura,
+                        "Prefere ficção ou não ficção": tipo_livro,
+                        "Gêneros favoritos": generos,
+                        "Você tem um autor favorito": tem_autor_favorito, # Valida a resposta 'Sim' ou 'Não'
+                        "Tamanho preferido": tamanho_livro,
+                        "Estilo de narrativa": narrativa,
+                        "Sentimento desejado ao ler": sentimento_livro,
+                        "Gosta de temas sociais": questoes_sociais,
+                        "Reler livros": releitura,
+                        "Formato preferido": formato_livro,
+                        "O que mais influencia sua escolha de um livro": influencia,
+                        "Importância das avaliações e recomendações": avaliacoes,
+                        "Você ouve audiolivros": audiolivros,
+                        "Você lê artigos acadêmicos ou científicos": interesse_artigos,
+                        "Qual seu principal objetivo ao ler": objetivo_leitura,
+                        "Qual tipo de conteúdo você mais consome": tipo_conteudo,
+                        "Como você descreveria seu nível de leitura": nivel_leitura,
+                        "Qual o seu ritmo de leitura": velocidade,
+                        "Você tem curiosidade por temas novos e desconhecidos": curiosidade,
+                        "Você se interessa por livros de outras culturas e perspectivas": contexto_cultural,
+                        "Você prefere tramas mais simples ou complexas": memoria,
+                        "Você lê livros em inglês": leitura_em_ingles,
+                    }
+
+                    missing_fields = []
+                    for label, value in required_fields.items():
+                        if not value or (isinstance(value, list) and not value):
+                            missing_fields.append(label)
+
+                    if tem_autor_favorito == "Sim" and not autor_favorito.strip():
+                        missing_fields.append("Nome do autor favorito")
+                    if interesse_artigos in ["Sim", "Às vezes"] and not area_academica.strip():
+                        missing_fields.append("Áreas de interesse acadêmica")
+
+
+                    if missing_fields:
+                        st.error(f"Por favor, preencha as seguintes informações obrigatórias: {', '.join(missing_fields)}")
+                    else:
+                        with st.spinner("Gerando seu perfil literário... Isso pode levar alguns segundos."):
+                            dados = {
+                                "idade": idade,
+                                "frequencia_leitura": frequencia_leitura,
+                                "tempo_leitura": tempo_leitura,
+                                "local_leitura": local_leitura,
+                                "tipo_livro": tipo_livro,
+                                "generos": ", ".join(generos),
+                                "genero_outro": genero_outro,
+                                "autor_favorito": autor_favorito,
+                                "tamanho_livro": tamanho_livro,
+                                "narrativa": narrativa,
+                                "sentimento_livro": sentimento_livro,
+                                "questoes_sociais": questoes_sociais,
+                                "releitura": releitura,
+                                "formato_livro": formato_livro,
+                                "influencia": influencia,
+                                "avaliacoes": avaliacoes,
+                                "audiolivros": audiolivros,
+                                "interesse_artigos": interesse_artigos,
+                                "area_academica": area_academica,
+                                "objetivo_leitura": objetivo_leitura,
+                                "tipo_conteudo": tipo_conteudo,
+                                "nivel_leitura": nivel_leitura,
+                                "velocidade": velocidade,
+                                "curiosidade": curiosidade,
+                                "contexto_cultural": contexto_cultural,
+                                "memoria": memoria,
+                                "leitura_em_ingles": leitura_em_ingles
+                            }
+
+                            genai.configure(api_key=gemini_api_key)
+                            prompt = f"Gere um perfil literário com base nas respostas e recomende livros e artigos academicos com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                            model = genai.GenerativeModel("gemini-2.0-flash")
+                            chat = model.start_chat()
+                            response = chat.send_message(prompt)
+                            perfil = response.text
+
+                            salvar_resposta(st.session_state.logged_user, dados, perfil)
+                            st.session_state.form_submitted = True
+                            st.session_state.perfil = perfil
+                            st.success("🎉 Perfil gerado com sucesso!")
+                            st.rerun()
+
         else:
-            st.warning("📚 Continue lendo para concluir o desafio!")
-    else:
-        st.warning("Faça login para acessar a gamificação.")
+            st.markdown(f'<div class="justified-text">{st.session_state.perfil}</div>', unsafe_allow_html=True)
+            st.markdown("---")
+            st.subheader("Gerar Novas Recomendações?")
+            st.info("Você pode gerar novas recomendações com base no seu perfil atual.")
+
+            col_left_actions, col_actions, col_right_actions = st.columns([1, 3, 1])
+            with col_actions:
+                if st.button("🔄 Gerar nova recomendação", key="btn_nova_recomendacao"):
+                    with st.spinner("Gerando nova recomendação..."):
+                        resposta_existente = buscar_resposta_existente(st.session_state.logged_user)
+                        if resposta_existente:
+                            dados = resposta_existente.dados if isinstance(resposta_existente.dados, dict) else json.loads(resposta_existente.dados)
+                            genai.configure(api_key=gemini_api_key)
+                            prompt = (
+                                "Com base nas respostas abaixo, crie um perfil literário atualizado.\n"
+                                "Depois, recomende:\n"
+                                "1. Livros relevantes com base nos gostos literários.\n"
+                                "2. Artigos acadêmicos conforme os interesses acadêmicos (se aplicável).\n\n"
+                                f"{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                            )
+                            model = genai.GenerativeModel("gemini-2.0-flash")
+                            chat = model.start_chat()
+                            response = chat.send_message(prompt)
+                            perfil = response.text
+
+                            salvar_resposta(st.session_state.logged_user, dados, perfil)
+                            st.session_state.perfil = perfil
+                            st.success("✅ Nova recomendação gerada!")
+                            st.rerun()
+
+    elif pagina == "🎮 Gamificação":
+        st.header("🎮 Gamificação da Leitura")
+        if "logged_user" in st.session_state:
+            usuario = st.session_state.logged_user
+
+            col_left_game, col_game, col_right_game = st.columns([1, 3, 1])
+            with col_game:
+                st.subheader("Registrar uma Leitura Recente")
+                with st.expander("Clique para registrar"):
+                    livro_lido = st.text_input("Título do livro que você leu:")
+                    paginas_lidas = st.number_input("Quantas páginas você leu?", min_value=1, value=50)
+                    if st.button("Registrar Leitura e Ganhar Pontos"):
+                        registrar_leitura(engine, usuario, paginas_lidas)
+                        st.success(f"Leitura de '{livro_lido}' registrada! Você ganhou pontos.")
+                        st.rerun()
+
+                st.markdown("---")
+                mostrar_status(engine, usuario)
+                verificar_conquistas(engine, usuario)
+                mostrar_conquistas(engine, usuario)
+
+                st.markdown("---")
+                st.subheader("🏆 Ranking Top Leitores")
+                ranking_top(engine)
+
+                st.markdown("---")
+                st.subheader("🔥 Desafio da Semana")
+                st.info(desafio_ativo())
+                if validar_desafio(engine, usuario):
+                    st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+                else:
+                    st.warning("📚 Continue lendo para concluir o desafio!")
+        else:
+            st.warning("Faça login para acessar a gamificação.")
+
+    elif pagina == "✍️ Painel do Escritor":
+        col_left_writer, col_writer, col_right_writer = st.columns([1, 3, 1])
+        with col_writer:
+            painel_escritor_conteudo()
