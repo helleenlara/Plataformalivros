@@ -17,7 +17,8 @@ from gamificacao import (
     mostrar_conquistas,
     ranking_top,
     desafio_ativo,
-    validar_desafio
+    validar_desafio,
+    calcular_pontos_e_nivel # Importar a função para usar diretamente
 )
 
 # Configuração da página
@@ -376,12 +377,9 @@ if "logged_user" not in st.session_state and st.session_state.current_page == "l
             st.subheader("Explore o Painel do Escritor")
             st.info("Acesse insights e análises de dados de leitura sem precisar criar uma conta. **Funcionalidades de gravação ou personalização não estarão disponíveis.**")
 
-            st.markdown('<div class="highlight-container">', unsafe_allow_html=True)
-            st.markdown("**Clique para explorar tendências e preferências de leitores!**")
             if st.button("Acessar Painel do Escritor", key="btn_visitor_writer_panel"):
                 st.session_state.current_page = "painel_escritor_visitante"
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
 
 elif st.session_state.current_page == "painel_escritor_visitante" and "logged_user" not in st.session_state:
     col_left_visitor, col_center_visitor, col_right_visitor = st.columns([1, 2, 1])
@@ -655,37 +653,69 @@ else:
                             st.rerun()
 
     elif pagina == "🎮 Gamificação":
-        st.header("🎮 Gamificação da Leitura")
         if "logged_user" in st.session_state:
             usuario = st.session_state.logged_user
+            st.title("🎮 Gamificação da Leitura")
 
-            col_left_game, col_game, col_right_game = st.columns([1, 3, 1])
-            with col_game:
-                st.subheader("Registrar uma Leitura Recente")
-                with st.expander("Clique para registrar"):
-                    livro_lido = st.text_input("Título do livro que você leu:")
-                    paginas_lidas = st.number_input("Quantas páginas você leu?", min_value=1, value=50)
-                    if st.button("Registrar Leitura e Ganhar Pontos"):
-                        registrar_leitura(engine, usuario, paginas_lidas)
-                        st.success(f"Leitura de '{livro_lido}' registrada! Você ganhou pontos.")
-                        st.rerun()
+            registrar_leitura(engine, usuario)
 
-                st.markdown("---")
-                mostrar_status(engine, usuario)
-                verificar_conquistas(engine, usuario)
-                mostrar_conquistas(engine, usuario)
+            # --- Bloco de Status do Usuário em um único highlight-container ---
+            st.markdown("---")
+            st.subheader("📊 Seu Desempenho Atual")
+            
+            col1_perf, col2_perf, col3_perf = st.columns(3)
+            
+            with col1_perf:
+                st.subheader("Pontos")
+                pontos, _ = calcular_pontos_e_nivel(engine, usuario)
+                st.metric(label="Total", value=pontos)
+            
+            with col2_perf:
+                st.subheader("Nível")
+                _, nivel = calcular_pontos_e_nivel(engine, usuario)
+                st.metric(label="Atual", value=nivel)
 
-                st.markdown("---")
-                st.subheader("🏆 Ranking Top Leitores")
-                ranking_top(engine)
-
-                st.markdown("---")
-                st.subheader("🔥 Desafio da Semana")
-                st.info(desafio_ativo())
-                if validar_desafio(engine, usuario):
-                    st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+            # Calcular a colocação do usuário
+            with engine.connect() as conn:
+                ranking_data = conn.execute(text("""
+                    SELECT u.username, COALESCE(SUM(p.paginas_lidas) + COUNT(*) FILTER (WHERE p.livro_finalizado) * 50, 0) as pontos
+                    FROM usuarios u
+                    LEFT JOIN progresso_leitura p ON u.username = p.username
+                    GROUP BY u.username
+                    ORDER BY pontos DESC
+                """)).fetchall()
+            
+            sua_colocacao = None
+            for i, r in enumerate(ranking_data):
+                if r.username == usuario:
+                    sua_colocacao = i + 1
+                    break
+            
+            with col3_perf:
+                st.subheader("Colocação")
+                if sua_colocacao is not None:
+                    st.metric(label="No Ranking", value=f"{sua_colocacao}º")
                 else:
-                    st.warning("📚 Continue lendo para concluir o desafio!")
+                    st.metric(label="No Ranking", value="N/A") # Ou uma mensagem indicando que não está no ranking ainda
+
+            st.markdown("</div>", unsafe_allow_html=True)
+            # --- Fim do Bloco de Status do Usuário ---
+            
+            st.markdown("---")
+            mostrar_conquistas(engine, usuario)
+            
+            st.markdown("---")
+            ranking_top(engine) 
+
+            st.markdown("---")
+            st.subheader("🔥 Desafio da Semana")
+            st.info(desafio_ativo()) # Exibe a descrição do desafio
+            
+            # Valida e exibe a mensagem do desafio
+            if validar_desafio(engine, usuario):
+                st.success("✅ Desafio concluído! Você ganhou 50 pontos bônus.")
+            else:
+                st.warning("📚 Continue lendo para concluir o desafio!")
         else:
             st.warning("Faça login para acessar a gamificação.")
 
