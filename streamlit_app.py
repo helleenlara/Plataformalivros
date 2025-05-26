@@ -350,7 +350,7 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
             "- Como conectar emocionalmente com esse público\n\n"
             "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
             f"Aqui estão os perfis dos leitores:\n{textos}"
-        )
+            )
         else:
             prompt = (
             f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
@@ -367,7 +367,7 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
             "- Gêneros ideais para esse público\n\n"
             "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
             f"Aqui estão os perfis dos leitores:\n{textos}"
-        )
+            )
 
 
         response = chat.send_message(prompt.strip())
