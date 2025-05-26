@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, text
 import google.generativeai as genai
 from pathlib import Path
 from wordcloud import WordCloud
+from datetime import datetime
 from gamificacao import (
     registrar_leitura,
     mostrar_status,
@@ -330,30 +331,44 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
             st.warning("⚠️ Não há perfis suficientes para análise.")
             st.stop()
 
+        from datetime import datetime
+        data_atual = datetime.now().strftime("%B de %Y")
+
         if faixa_etaria_opcao == "Todas":
             prompt = (
-                "Você é um assistente literário com foco em análise de público.\n\n"
-                "A seguir, veja uma coleção de perfis literários de leitores.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais mencionados ou desejados.\n"
-                "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
-                "3. Gêneros literários populares.\n"
-                "4. Padrões recorrentes de leitura.\n"
-                "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
-                f"Perfis:\n{textos}"
+            f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros.\n\n"
+            "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar o público com mais impacto.\n"
+            "Analise os perfis abaixo e identifique:\n\n"
+            "1. Temas e assuntos mais valorizados pelos leitores.\n"
+            "2. Estilos narrativos preferidos (ex: introspectivo, emocionante, com reviravoltas, etc).\n"
+            "3. Emoções ou sensações que o público busca nos livros.\n"
+            "4. Padrões de interesse e preferências recorrentes.\n\n"
+            "**Com base nisso, gere recomendações práticas para escritores**, como por exemplo:\n"
+            "- Que tipo de enredo desenvolver\n"
+            "- Que tipo de linguagem utilizar\n"
+            "- Que tipos de personagens criar\n"
+            "- Como conectar emocionalmente com esse público\n\n"
+            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            f"Aqui estão os perfis dos leitores:\n{textos}"
             )
         else:
             prompt = (
-                f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
-                f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
-                "Analise com profundidade e extraia:\n\n"
-                "1. Temas mais desejados.\n"
-                "2. Estilos narrativos predominantes.\n"
-                "3. Gêneros mais apreciados.\n"
-                "4. Padrões comuns de comportamento de leitura.\n"
-                "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
-                f"Perfis:\n{textos}"
+            f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
+            "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.\n"
+            "Analise os perfis abaixo e identifique:\n\n"
+            "1. Temas e assuntos mais valorizados pelos leitores dessa faixa etária.\n"
+            "2. Estilos narrativos preferidos.\n"
+            "3. Emoções ou sensações desejadas.\n"
+            "4. Padrões de interesse e preferências específicas dessa faixa.\n\n"
+            "**Com base nisso, gere recomendações práticas para escritores**, como:\n"
+            "- Enredos sugeridos\n"
+            "- Estilo de escrita\n"
+            "- Gatilhos emocionais\n"
+            "- Gêneros ideais para esse público\n\n"
+            "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
+            f"Aqui estão os perfis dos leitores:\n{textos}"
             )
+
 
         response = chat.send_message(prompt.strip())
         st.markdown("### 💡 Análise Gerada pela IA")
