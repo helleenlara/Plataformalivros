@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import hashlib
@@ -287,46 +288,47 @@ baseando-se nas preferências reais dos leitores coletadas pela plataforma.
     st.download_button("⬇️ Baixar dados filtrados (.csv)", data=csv, file_name="dados_filtrados.csv", mime="text/csv")
 
     st.header("💡 Sugestões para Escrita com IA")
-try:
-    genai.configure(api_key=gemini_api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    chat = model.start_chat()
 
-    textos = " ".join(df["perfil_gerado"].dropna()).lower().strip()
+    try:
+        genai.configure(api_key=gemini_api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        chat = model.start_chat()
 
-    if not textos:
-        st.warning("⚠️ Não há perfis suficientes para análise.")
-        st.stop()
+        textos = " ".join(df["perfil_gerado"].dropna()).lower().strip()
 
-    if faixa_etaria_opcao == "Todas":
-        prompt = (
-            "Você é um assistente literário com foco em análise de público.\n\n"
-            "A seguir, veja uma coleção de perfis literários de leitores.\n"
-            "Analise com profundidade e extraia:\n\n"
-            "1. Temas mais mencionados ou desejados.\n"
-            "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
-            "3. Gêneros literários populares.\n"
-            "4. Padrões recorrentes de leitura.\n"
-            "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
-            f"Perfis:\n{textos}"
-        )
-    else:
-        prompt = (
-            f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
-            f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
-            "Analise com profundidade e extraia:\n\n"
-            "1. Temas mais desejados.\n"
-            "2. Estilos narrativos predominantes.\n"
-            "3. Gêneros mais apreciados.\n"
-            "4. Padrões comuns de comportamento de leitura.\n"
-            "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
-            f"Perfis:\n{textos}"
-        )
+        if not textos:
+            st.warning("⚠️ Não há perfis suficientes para análise.")
+            st.stop()
 
-    response = chat.send_message(prompt.strip())
-    st.markdown("### 💡 Análise Gerada pela IA")
-    st.markdown(response.text)
-    st.download_button("⬇️ Baixar Análise", data=response.text, file_name="analise_ia.txt")
+        if faixa_etaria_opcao == "Todas":
+            prompt = (
+                "Você é um assistente literário com foco em análise de público.\n\n"
+                "A seguir, veja uma coleção de perfis literários de leitores.\n"
+                "Analise com profundidade e extraia:\n\n"
+                "1. Temas mais mencionados ou desejados.\n"
+                "2. Estilos narrativos preferidos (ex: introspectivo, dinâmico, emocional).\n"
+                "3. Gêneros literários populares.\n"
+                "4. Padrões recorrentes de leitura.\n"
+                "5. Sugestões úteis para escritores que desejam agradar esse público.\n\n"
+                f"Perfis:\n{textos}"
+            )
+        else:
+            prompt = (
+                f"Você é um assistente literário com foco em análise de público por faixa etária.\n\n"
+                f"A seguir, veja uma coleção de perfis de leitores da faixa etária: {faixa_etaria_opcao}.\n"
+                "Analise com profundidade e extraia:\n\n"
+                "1. Temas mais desejados.\n"
+                "2. Estilos narrativos predominantes.\n"
+                "3. Gêneros mais apreciados.\n"
+                "4. Padrões comuns de comportamento de leitura.\n"
+                "5. Dicas práticas para escritores que desejam escrever para esse grupo.\n\n"
+                f"Perfis:\n{textos}"
+            )
 
-except Exception as e:
-    st.warning(f"❌ Erro na análise com IA: {e}")
+        response = chat.send_message(prompt.strip())
+        st.markdown("### 💡 Análise Gerada pela IA")
+        st.markdown(response.text)
+        st.download_button("⬇️ Baixar Análise", data=response.text, file_name="analise_ia.txt")
+
+    except Exception as e:
+        st.warning(f"❌ Erro na análise com IA: {e}")
