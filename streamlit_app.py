@@ -609,7 +609,24 @@ else:
                             }
 
                             genai.configure(api_key=gemini_api_key)
-                            prompt = f"Gere um perfil literário com base nas respostas e recomende livros e artigos academicos com base nesse perfil:\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                            prompt = (
+                                 "**Atue como um PSICÓLOGO LITERÁRIO altamente perspicaz e intuitivo.**\n"
+                                "Sua missão é ir MUITO ALÉM das respostas diretas do formulário abaixo. **Não cite, reitere, ou faça qualquer referência explícita às informações exatas que foram fornecidas.** Ou seja, não mencione a origem de nenhum dado, como 'a preferência por', 'a recusa em', 'o interesse em', que remetam diretamente a uma resposta do formulário.\n"
+                                "Em vez disso, analise as entrelinhas para **TRAÇAR UM RETRATO PSICOLÓGICO REVELADOR e SURPREENDENTE do leitor, identificando suas tendências, motivações e anseios subjacentes.** Seu objetivo é apresentar insights que o próprio leitor, ao ler, dirá: 'Uau, eu não tinha percebido isso sobre mim!'.\n"
+                                "Conecte os traços de forma fluida e integrada, como se estivesse descrevendo a essência de uma personalidade complexa, e não um conjunto de dados. Foque em:\n"
+                                "1.  **Forças e Desafios Inerentes:** O que define intrinsecamente este leitor e onde pode haver pontos de crescimento.\n"
+                                "2.  **Desejos Não Articulados:** O que o leitor busca na leitura que ele mesmo não consegue expressar claramente.\n"
+                                "3.  **Paradoxos e Equilíbrios:** Onde há aparentemente uma contradição, mas na verdade revela uma característica única.\n"
+                                "4.  **Implicações de Hábitos:** O que os hábitos de leitura (onde, quando, como) revelam sobre sua psicologia.\n\n"
+                                "Apresente este 'diagnóstico literário' em uma narrativa única, profunda e sem clichês, focando na descoberta de traços que vão além do óbvio.\n\n"
+                                "--- # Fim do Perfil\n\n" # Linha de separação clara
+                                "**Com base EXCLUSIVAMENTE nas tendências e motivações REVELADAS neste retrato psicológico (e sem repetir NENHUM dado bruto do formulário, nem mesmo inferências óbvias que já estavam no formulário), RECOMENDE:**\n"
+                                "1.  **Livros relevantes**, com justificativas que explorem as conexões com as **tendências e anseios mais profundos** revelados no perfil.\n"
+                                "2.  **Artigos acadêmicos apropriados**, detalhando a conexão com **áreas de pesquisa que complementem ou desafiem** as motivações subjacentes identificadas no retrato.\n\n"
+                                "**Além disso, identifique uma ou duas possíveis novas áreas ou gêneros que o leitor poderia explorar**, com base nas suas preferências e inferências do perfil, e **sugira um ou dois títulos** que se encaixem nessa expansão, justificando a sugestão.\n\n"
+                                "**Estruture a resposta claramente com o '## Perfil Literário' primeiro, seguido por '## Recomendações de Livros', '## Recomendações de Artigos Acadêmicos' e, por último, '## Sugestões de Expansão de Interesses'.**\n"
+                                f"**Dados do Formulário para Análise:**\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                            )                  
                             model = genai.GenerativeModel("gemini-2.0-flash")
                             chat = model.start_chat()
                             response = chat.send_message(prompt)
@@ -636,11 +653,22 @@ else:
                             dados = resposta_existente.dados if isinstance(resposta_existente.dados, dict) else json.loads(resposta_existente.dados)
                             genai.configure(api_key=gemini_api_key)
                             prompt = (
-                                "Com base nas respostas abaixo, crie um perfil literário atualizado.\n"
-                                "Depois, recomende:\n"
-                                "1. Livros relevantes com base nos gostos literários.\n"
-                                "2. Artigos acadêmicos conforme os interesses acadêmicos (se aplicável).\n\n"
-                                f"{json.dumps(dados, indent=2, ensure_ascii=False)}"
+                               "**Atue como um PSICÓLOGO LITERÁRIO altamente perspicaz e intuitivo.**\n"
+                                "Sua missão é ir MUITO ALÉM das respostas diretas do formulário abaixo. **Não cite, reitere, ou faça qualquer referência explícita às informações exatas que foram fornecidas.** Ou seja, não mencione a origem de nenhum dado, como 'a preferência por', 'a recusa em', 'o interesse em', que remetam diretamente a uma resposta do formulário.\n"
+                                "Em vez disso, analise as entrelinhas para **TRAÇAR UM RETRATO PSICOLÓGICO REVELADOR e SURPREENDENTE do leitor, identificando suas tendências, motivações e anseios subjacentes.** Seu objetivo é apresentar insights que o próprio leitor, ao ler, dirá: 'Uau, eu não tinha percebido isso sobre mim!'.\n"
+                                "Conecte os traços de forma fluida e integrada, como se estivesse descrevendo a essência de uma personalidade complexa, e não um conjunto de dados. Foque em:\n"
+                                "1.  **Forças e Desafios Inerentes:** O que define intrinsecamente este leitor e onde pode haver pontos de crescimento.\n"
+                                "2.  **Desejos Não Articulados:** O que o leitor busca na leitura que ele mesmo não consegue expressar claramente.\n"
+                                "3.  **Paradoxos e Equilíbrios:** Onde há aparentemente uma contradição, mas na verdade revela uma característica única.\n"
+                                "4.  **Implicações de Hábitos:** O que os hábitos de leitura (onde, quando, como) revelam sobre sua psicologia.\n\n"
+                                "Apresente este 'diagnóstico literário' em uma narrativa única, profunda e sem clichês, focando na descoberta de traços que vão além do óbvio.\n\n"
+                                "--- # Fim do Perfil\n\n" # Linha de separação clara
+                                "**Com base EXCLUSIVAMENTE nas tendências e motivações REVELADAS neste retrato psicológico (e sem repetir NENHUM dado bruto do formulário, nem mesmo inferências óbvias que já estavam no formulário), RECOMENDE:**\n"
+                                "1.  **Livros relevantes**, com justificativas que explorem as conexões com as **tendências e anseios mais profundos** revelados no perfil.\n"
+                                "2.  **Artigos acadêmicos apropriados**, detalhando a conexão com **áreas de pesquisa que complementem ou desafiem** as motivações subjacentes identificadas no retrato.\n\n"
+                                "**Além disso, identifique uma ou duas possíveis novas áreas ou gêneros que o leitor poderia explorar**, com base nas suas preferências e inferências do perfil, e **sugira um ou dois títulos** que se encaixem nessa expansão, justificando a sugestão.\n\n"
+                                "**Estruture a resposta claramente com o '## Perfil Literário' primeiro, seguido por '## Recomendações de Livros', '## Recomendações de Artigos Acadêmicos' e, por último, '## Sugestões de Expansão de Interesses'.**\n"
+                                f"**Dados do Formulário para Análise:**\n{json.dumps(dados, indent=2, ensure_ascii=False)}"
                             )
                             model = genai.GenerativeModel("gemini-2.0-flash")
                             chat = model.start_chat()
