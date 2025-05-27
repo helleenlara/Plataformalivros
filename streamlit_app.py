@@ -20,7 +20,7 @@ from gamificacao import (
     validar_desafio,
     calcular_pontos_e_nivel # Importar a função para usar diretamente
 )
-
+from datetime import datetime
 # Configuração da página
 st.set_page_config(page_title="Plataforma LitMe", layout="wide")
 
@@ -178,24 +178,27 @@ def autenticar_usuario(username, senha):
             WHERE username = :username AND senha_hash = :senha_hash
         """), {"username": username, "senha_hash": senha_hash}).fetchone()
 
+
 def salvar_resposta(usuario, dados_dict, perfil_gerado):
     with engine.begin() as conn:
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS respostas_formulario (
                 usuario TEXT PRIMARY KEY,
                 dados TEXT,
-                perfil_gerado TEXT
+                perfil_gerado TEXT,
+                data_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """))
         conn.execute(text("""
-            INSERT INTO respostas_formulario (usuario, dados, perfil_gerado)
-            VALUES (:usuario, :dados, :perfil)
+            INSERT INTO respostas_formulario (usuario, dados, perfil_gerado, data_envio)
+            VALUES (:usuario, :dados, :perfil, :data_envio)
             ON CONFLICT (usuario) DO UPDATE
-            SET dados = :dados, perfil_gerado = :perfil
+            SET dados = :dados, perfil_gerado = :perfil, data_envio = :data_envio
         """), {
             "usuario": usuario,
             "dados": dados_dict if isinstance(dados_dict, str) else json.dumps(dados_dict),
-            "perfil": perfil_gerado
+            "perfil": perfil_gerado,
+            "data_envio": datetime.now()
         })
 
 def buscar_resposta_existente(usuario):
@@ -213,6 +216,8 @@ def carregar_dados():
                 df["dados"] = df["dados"].apply(lambda x: json.dumps(x) if isinstance(x, dict) else x)
                 dados_dicts = df["dados"].apply(json.loads).apply(pd.Series)
                 df = pd.concat([df.drop(columns=["dados"]), dados_dicts], axis=1)
+            if "data_envio" in df.columns:
+                df["data_envio"] = pd.to_datetime(df["data_envio"])
             return df
     except Exception as e:
         st.error(f"❌ Erro ao carregar os dados do banco: {e}")
@@ -237,7 +242,13 @@ def painel_escritor_conteudo():
     except Exception as e:
         st.error(f"❌ Erro ao carregar os dados: {e}")
         return
-
+    # Filtro por data de envio
+    if "data_envio" in df.columns:
+        datas_disponiveis = sorted(df["data_envio"].dt.date.unique())
+        data_escolhida = st.selectbox("📅 Filtrar por data de preenchimento:", ["Todas"] + [str(data) for data in datas_disponiveis])
+        if data_escolhida != "Todas":
+            df = df[df["data_envio"].dt.date == pd.to_datetime(data_escolhida).date()]
+        
     faixa_etaria_opcao = st.selectbox("Filtrar por faixa etária:", ["Todas"] + sorted(df["idade"].dropna().unique().tolist()))
     if faixa_etaria_opcao != "Todas":
         df = df[df["idade"] == faixa_etaria_opcao]
