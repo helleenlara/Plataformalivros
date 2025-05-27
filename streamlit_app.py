@@ -257,78 +257,90 @@ def painel_escritor_conteudo():
     col1, col2 = st.columns(2)
     with col1:
         if "formato_livro" in df.columns:
-            st.markdown("### Formato de Leitura Preferido")
-            st.bar_chart(df["formato_livro"].value_counts())
+            st.subheader("Formato de Leitura Preferido")
+            formatos_filtrados = df[df["formato_livro"].isin(["Físico", "Digital"])]
+            st.bar_chart(formatos_filtrados["formato_livro"].value_counts(), use_container_width=True)
 
     with col2:
         if "generos" in df.columns:
             generos_series = df["generos"].str.split(", ").explode()
-            st.markdown("### Gêneros Literários Mais Citados")
-            st.bar_chart(generos_series.value_counts())
+            st.subheader("Gêneros Literários Mais Citados")
+            st.bar_chart(generos_series.value_counts(), use_container_width=True)
 
     col3, col4 = st.columns(2)
     with col3:
         if "objetivo_leitura" in df.columns:
             st.markdown("### Objetivo de Leitura")
             st.bar_chart(df["objetivo_leitura"].value_counts())
+            st.subheader("Objetivo de Leitura")
+            st.bar_chart(df["objetivo_leitura"].value_counts(), use_container_width=True)
 
     with col4:
         if "sentimento_livro" in df.columns:
             st.markdown("### Sentimentos Desejados")
-            st.bar_chart(df["sentimento_livro"].value_counts())
+            st.bar_chart(df["sentimento_livro"].value_counts(), use_container_width=True)
+
+    st.subheader("📊 Faixa Etária dos Leitores")
+    if "idade" in df.columns:
+        st.bar_chart(df["idade"].value_counts(), use_container_width=True)
+
+    st.subheader("📊 Frequência de Leitura")
+    if "frequencia_leitura" in df.columns:
+        st.bar_chart(df["frequencia_leitura"].value_counts(), use_container_width=True)
+
+    st.subheader("📊 Estilos de Narrativa Preferidos")
+    if "narrativa" in df.columns:
+        st.bar_chart(df["narrativa"].value_counts(), use_container_width=True)
+
+    st.subheader("📊 Tamanho Preferido dos Livros")
+    if "tamanho_livro" in df.columns:
+        st.bar_chart(df["tamanho_livro"].value_counts(), use_container_width=True)
 
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Baixar dados filtrados (.csv)", data=csv, file_name="dados_filtrados.csv", mime="text/csv")
 
     st.header("💡 Sugestões para Escrita com IA")
-
     try:
         genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel("gemini-2.0-flash")
         chat = model.start_chat()
 
         textos = " ".join(df["perfil_gerado"].dropna()).lower().strip()
-
         if not textos:
             st.warning("⚠️ Não há perfis suficientes para análise para a IA.")
             return
 
         data_atual = datetime.now().strftime("%B de %Y")
+        faixa_info = f" da faixa etária: {faixa_etaria_opcao}" if faixa_etaria_opcao != "Todas" else ""
 
-        if faixa_etaria_opcao == "Todas":
-            prompt = (
-                f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros.\n\n"
-                "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar o público com mais impacto.\n"
-                "Analise os perfis abaixo e identifique:\n\n"
-                "1. Temas e assuntos mais valorizados pelos leitores.\n"
-                "2. Estilos narrativos preferidos (ex: introspectivo, emocionante, com reviravoltas, etc).\n"
-                "3. Emoções ou sensações que o público busca nos livros.\n"
-                "4. Padrões de interesse e preferências recorrentes.\n\n"
-                "**Com base nisso, gere recomendações práticas para escritores**, como por exemplo:\n"
-                "- Que tipo de enredo desenvolver\n"
-                "- Que tipo de linguagem utilizar\n"
-                "- Que tipos de personagens criar\n"
-                "- Como conectar emocionalmente com esse público\n\n"
-                "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
-                f"Aqui estão os perfis dos leitores:\n{textos}"
-            )
-        else:
-            prompt = (
-                f"Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros da faixa etária: {faixa_etaria_opcao}.\n\n"
-                "Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.\n"
-                "Analise os perfis abaixo e identifique:\n\n"
-                "1. Temas e assuntos mais valorizados pelos leitores dessa faixa etária.\n"
-                "2. Estilos narrativos preferidos.\n"
-                "3. Emoções ou sensações desejadas.\n"
-                "4. Padrões de interesse e preferências específicas dessa faixa.\n\n"
-                "**Com base nisso, gere recomendações práticas para escritores**, como:\n"
-                "- Enredos sugeridos\n"
-                "- Estilo de escrita\n"
-                "- Gatilhos emocionais\n"
-                "- Gêneros ideais para esse público\n\n"
-                "**Apenas forneça as recomendações. Não faça perguntas nem continue a conversa.**\n\n"
-                f"Aqui estão os perfis dos leitores:\n{textos}"
-            )
+        prompt = f"""
+        Hoje é {data_atual}. Você é um consultor literário com acesso a perfis reais de leitores brasileiros{faixa_info}.
+        Seu objetivo é ajudar escritores a adaptar seus textos para alcançar esse público com mais impacto.
+
+        Com base nos dados coletados da plataforma, analise os seguintes aspectos:
+        1. Formatos de leitura mais utilizados (físico ou digital)
+        2. Gêneros literários mais citados
+        3. Objetivos que os leitores têm ao escolher um livro
+        4. Sentimentos que os leitores buscam ao ler
+        5. Faixa etária predominante dos leitores
+        6. Frequência e tempo dedicado à leitura
+        7. Estilos narrativos preferidos
+        8. Tamanho de livro mais apreciado
+
+        **A partir disso, gere recomendações práticas para escritores**, como:
+        - Qual tipo de enredo pode envolver mais o leitor
+        - Que estilo narrativo utilizar
+        - Que tipo de linguagem é mais adequada
+        - Como estruturar os personagens
+        - Qual o tamanho ideal de livro
+        - Como conectar emocionalmente com o leitor
+
+        **Justifique cada recomendação com base nos dados analisados. Use termos, padrões e preferências reais dos leitores.**
+        Não escreva como um chatbot. Não faça perguntas. Apenas forneça as sugestões com explicações claras e fundamentadas.
+
+        Perfis analisados:
+        {textos}
+        """.strip()
 
         response = chat.send_message(prompt.strip())
         st.markdown("### 💡 Análise Gerada pela IA")
